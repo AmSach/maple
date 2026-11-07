@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.env
+venv/
+env/
+ENV/
+
+# Model Weights & Large Binaries (Store on Hugging Face, not git)
+*.gguf
+*.bin
+*.pt
+*.safetensors
+*.tmp
+
+# LaTeX Compilation Artifacts
+*.aux
+*.log
+*.out
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+*.bbl
+*.blg
+*.toc
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

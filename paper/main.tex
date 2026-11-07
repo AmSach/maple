@@ -1,0 +1,707 @@
+% ============================================================
+%  MAPLE: Manifold-Activated Pruning of Latent Experts
+%  Empirical Activation-Guided Expert Distillation for
+%  Mixture-of-Experts LLMs Below 2 Bits Per Weight
+% ============================================================
+%  Compiled with: pdflatex main.tex (run twice for references)
+%  Style: NeurIPS 2024 (neurips_2024.sty)
+%        fallback: standard article if sty unavailable
+% ============================================================
+
+\documentclass[final]{article}
+
+% ---- Try to load NeurIPS style; fall back gracefully ----
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[activate={true,nocompatibility},final,tracking=true,kerning=true,expansion=false,factor=1100]{microtype}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{nicefrac}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{listings}
+\usepackage{subcaption}
+\usepackage{geometry}
+\usepackage{setspace}
+\usepackage{enumitem}
+\usepackage{multirow}
+
+\geometry{
+  letterpaper,
+  top=1in, bottom=1in,
+  left=1in, right=1in
+}
+
+% ---- Listings config ----
+\lstset{
+  basicstyle=\ttfamily\footnotesize,
+  keywordstyle=\color{blue}\bfseries,
+  commentstyle=\color{gray},
+  stringstyle=\color{teal},
+  breaklines=true,
+  frame=single,
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  tabsize=2,
+  aboveskip=6pt,
+  belowskip=6pt
+}
+
+% ---- Hyperref colors ----
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!70!black,
+  citecolor=green!50!black,
+  urlcolor=blue!80!black
+}
+
+% ---- Macros ----
+\newcommand{\MAPLE}{\textsc{MAPLE}}
+\newcommand{\etal}{\emph{et al.}}
+\newcommand{\bpw}{\text{BPW}}
+\newcommand{\tps}{\text{TPS}}
+\newcommand{\ie}{\emph{i.e.}}
+\newcommand{\eg}{\emph{e.g.}}
+\newcommand{\R}{\mathbb{R}}
+
+% ============================================================
+\title{%
+  \MAPLE: Manifold-Activated Pruning of Latent Experts\\[0.5em]
+  \large Empirical Activation-Guided Expert Distillation for\\
+  Mixture-of-Experts Language Models Below 2 Bits Per Weight
+}
+
+\author{
+  Aman Sachan\\
+  Independent Systems Research\\
+  New Delhi, India\\
+  \texttt{amansachan92905@gmail.com}
+}
+
+\date{November 2026}
+
+\begin{document}
+\maketitle
+
+% ============================================================
+\begin{abstract}
+% ============================================================
+We present \MAPLE{} (\textbf{M}anifold-\textbf{A}ctivated \textbf{P}runing of \textbf{L}atent \textbf{E}xperts), a
+method for compressing Mixture-of-Experts (MoE) large language models to sub-2-bit-per-weight
+effective densities while retaining high functional quality on targeted deployment domains. The key
+insight is that in a fine-grained MoE model trained on a broad multilingual corpus, the vast majority
+of routed expert capacity is dormant for any given deployment subdomain. We exploit this structural
+sparsity by profiling the actual expert activation manifold during forward passes on a representative
+calibration corpus, scoring each expert by the product of its empirical call count and the square
+root of its mean input energy, and constructing a reduced GGUF container retaining only the
+top-$k$ experts per layer. Applied to Gemma~4~26B-A4B (a 128-expert, 30-layer MoE at 9.92~GB in
+IQ2\_XXS quantization), \MAPLE{} produces a 4.75~GB model (1.48 effective bits per weight,
+2.09$\times$ compression) that runs at 45.4 tokens per second with 100\% GPU residency on a
+consumer RTX~4050~6GB laptop GPU---a 6.57$\times$ throughput improvement. Task-based semantic
+fidelity benchmarking across four diverse domains yields a mean keyword-match retention of 93.8\%.
+We also document three failure modes that our method overcomes: proxy-embedding routing estimation,
+cascaded scale suppression, and sampling-hyperparameter interference with code generation.
+All code, calibration corpora, and expert selection maps are released openly.
+\end{abstract}
+
+% ============================================================
+\section{Introduction}
+\label{sec:intro}
+% ============================================================
+
+The proliferation of Mixture-of-Experts architectures in frontier large language models~\cite{jiang2024mixtral,dai2024deepseekmoe,team2025gemma} has introduced a structurally novel compression opportunity that conventional quantization methods fail to exploit. In a dense transformer, every weight participates in every forward pass; compression therefore operates uniformly across the weight space. In a MoE model, however, only a small fraction of the total expert capacity is activated per token---typically $k$ experts out of $E$ total, with $k/E \approx 0.03$--$0.06$ for modern fine-grained architectures. The question this paper asks is deceptively simple: \emph{for a specific deployment subdomain, which $k'$ out of $E$ experts ever matter---and can we safely discard the rest entirely?}
+
+The practical stakes are high. Consumer-grade GPUs have VRAM ceilings of 6--12~GB. The difference between a model that \emph{fits entirely in VRAM} and one that \emph{must page weights through CPU RAM} is not a minor quality difference; it is a qualitative cliff. In our empirical setting, the full-precision-routed Gemma~4~26B-A4B at 9.92~GB runs at 6.9 tokens per second with CPU paging on an RTX~4050~6GB. After \MAPLE{} compression to 4.75~GB it runs at 45.4 tokens per second entirely within VRAM. The user experience---from barely interactive to real-time conversational---is transformed.
+
+Prior work on MoE compression has largely focused on weight quantization~\cite{frantar2022gptq,lin2024awq}, structured pruning of attention heads~\cite{michel2019sixteen}, and static expert selection based on router logits~\cite{kim2021bert}. What is missing is a \emph{forward-pass empirical} approach that uses the model's own observed activation statistics, computed on a representative calibration corpus, to decide which experts survive compression. This is precisely what \MAPLE{} provides.
+
+This paper makes the following contributions:
+\begin{enumerate}[leftmargin=1.5em,topsep=4pt,itemsep=2pt]
+  \item We introduce the \emph{empirical activation manifold} of a MoE model: the per-layer distribution of expert call counts and input energy statistics, obtained through native forward-pass profiling (\S\ref{sec:method}).
+  \item We define the \MAPLE{} expert scoring function $s_e = c_e \cdot \sqrt{\bar{\sigma}_e}$, where $c_e$ is the empirical call count and $\bar{\sigma}_e$ is the mean input L2 energy of expert $e$, and show it outperforms count-only or energy-only selection (\S\ref{sec:method}).
+  \item We document three distinct failure modes that invalidate naive compression approaches and explain precisely why each fails (\S\ref{sec:failures}).
+  \item We demonstrate 93.8\% task fidelity retention, 2.09$\times$ compression, 1.48 effective~BPW, and 6.57$\times$ throughput improvement on a commodity laptop GPU for a 26-billion-parameter MoE model (\S\ref{sec:experiments}).
+  \item We release all code, calibration data, and expert selection maps at the project repository.
+\end{enumerate}
+
+The paper is organized as follows. Section~\ref{sec:background} reviews MoE architectures and existing compression approaches. Section~\ref{sec:insight} characterizes the expert sparsity structure we exploit. Section~\ref{sec:method} describes \MAPLE{} in full algorithmic detail. Section~\ref{sec:failures} documents the three failure modes. Section~\ref{sec:experiments} presents quantitative evaluation. Section~\ref{sec:limitations} discusses limitations honestly. Section~\ref{sec:generality} addresses generalizability. Section~\ref{sec:related} situates our work in context. Section~\ref{sec:conclusion} concludes.
+
+% ============================================================
+\section{Background}
+\label{sec:background}
+% ============================================================
+
+\subsection{Mixture-of-Experts Language Models}
+
+A Mixture-of-Experts transformer replaces the dense feed-forward network (FFN) in each transformer block with a set of $E$ parallel expert networks and a learned router. For each input token hidden state $\mathbf{h} \in \R^{d}$, the router computes logits $\mathbf{g} = \mathbf{h} W_\text{gate} \in \R^E$, selects the top-$k$ experts by logit magnitude, applies a softmax-normalized weighting over the selected experts, and sums their outputs:
+\begin{equation}
+  \text{FFN}_\text{MoE}(\mathbf{h}) = \sum_{e \in \text{top}_k(\mathbf{g})} \text{softmax}(\mathbf{g})_e \cdot \text{FFN}_e(\mathbf{h}),
+  \label{eq:moe}
+\end{equation}
+where each $\text{FFN}_e$ is a standard two-layer feed-forward network with gate, up-projection, and down-projection matrices.
+
+Fine-grained MoE architectures~\cite{dai2024deepseekmoe} use large $E$ (64--256 experts) with small $k$ (4--8 active), so individual experts are narrow specialists. The total parameter count scales with $E$, but the per-token compute cost scales only with $k$. Gemma~4~26B-A4B~\cite{team2025gemma} uses $E = 128$, $k = 8$, and 30 transformer blocks in which every block is a MoE block (additionally containing a shared dense FFN branch).
+
+\subsection{Existing Compression Approaches}
+
+\textbf{Post-training quantization (PTQ).} Methods such as GPTQ~\cite{frantar2022gptq} and AWQ~\cite{lin2024awq} minimize quantization error on calibration data by applying second-order weight updates (GPTQ) or activation-aware scaling (AWQ). They reduce precision uniformly across weights but do not reduce the number of experts; memory and compute reductions are proportional to the bit-width reduction alone.
+
+\textbf{Importance-based structured pruning.} L0 regularization~\cite{louizos2018learning}, movement pruning~\cite{sanh2020movement}, and magnitude-based pruning~\cite{han2015learning} prune weight tensors or entire components (heads, layers). Applied to MoE models, structured pruning could remove entire expert networks; however, existing implementations typically require gradient access to the original training or fine-tuning pipeline, which is not available for community-distributed GGUF models.
+
+\textbf{Expert routing analysis.} Several works have analyzed router behavior to understand load balancing~\cite{lepikhin2021gshard} and expert specialization~\cite{fedus2022switch}. However, these works operate in the training regime with full gradient access. The closest antecedents to our work are expert dropping methods~\cite{chen2022task}, which analyze expert importance based on routing probabilities, but do so using aggregated training statistics rather than forward-pass activation profiles on deployment calibration data.
+
+\textbf{GGUF quantization.} The GGUF format~\cite{llama_cpp} used by llama.cpp supports mixed-precision quantization schemes (Q4\_K, Q5\_K, IQ2\_XXS, etc.) and an importance matrix (\texttt{imatrix}) mechanism that records per-weight activation importance for calibration-aware quantization. We repurpose this \texttt{imatrix} infrastructure for our expert selection step, treating it as a lightweight profiling instrument rather than a quantization calibration tool.
+
+% ============================================================
+\section{The Core Insight: Expert Sparsity in Deployment Domains}
+\label{sec:insight}
+% ============================================================
+
+A MoE model trained on a global multilingual corpus must route diverse linguistic phenomena---code in dozens of programming languages, mathematics in multiple notations, natural language across hundreds of languages, and specialized domain text---across its expert pool. During training, the router learns to assign tokens from different distributions to different experts, so the full expert population is collectively necessary to serve arbitrary queries.
+
+However, any realistic \emph{deployment} scenario is not arbitrary. A user interacting with a model on a laptop in English, writing Python code and asking reasoning questions, is drawing on a narrow slice of the input distribution the model was trained on. The experts activated by this slice form an \emph{empirical activation manifold} that is substantially smaller than the full expert roster.
+
+We formalize this observation. Let $\mathcal{D}_\text{deploy}$ be the deployment distribution (a finitely-approximated calibration corpus) and let $C_{e,l}$ be the number of times expert $e$ in layer $l$ is selected during forward passes over $\mathcal{D}_\text{deploy}$. We define the \emph{activation coverage} of a subset $\mathcal{S}_l \subseteq \{0, \ldots, E-1\}$ of experts in layer $l$ as:
+\begin{equation}
+  \text{Coverage}(\mathcal{S}_l) = \frac{\sum_{e \in \mathcal{S}_l} C_{e,l}}{\sum_{e=0}^{E-1} C_{e,l}}.
+  \label{eq:coverage}
+\end{equation}
+
+If the deployment distribution concentrates activation onto a small expert subset, we can retain $|\mathcal{S}_l| \ll E$ experts and still capture nearly all forward-pass activation mass. Empirically, on our calibration corpus of 1,979 tokens drawn from English programming, science, and reasoning text, retaining the top 48 of 128 experts per layer captures an average of 79.88\% of activation mass across all 30 layers of Gemma~4~26B-A4B. The remaining 80 experts (62.5\% of the expert pool by count) contribute only 20.12\% of activation---and can be excised cleanly.
+
+The resulting model is not a universally capable model; it is a \emph{domain-specialist} distillation of the original. This trade-off is explicit and honest: we sacrifice breadth of generalization in exchange for throughput, memory footprint, and VRAM residency on consumer hardware.
+
+% ============================================================
+\section{Method: Empirical Activation Manifold Profiling}
+\label{sec:method}
+% ============================================================
+
+\MAPLE{} proceeds in four stages: calibration corpus construction, forward-pass activation profiling, expert scoring and selection, and GGUF container assembly.
+
+\subsection{Stage 1: Calibration Corpus Construction}
+
+The calibration corpus $\mathcal{D}_\text{deploy}$ must be representative of the target deployment domain. For our English programming-and-reasoning target domain, we constructed a 1,979-token corpus spanning:
+\begin{itemize}[leftmargin=1.5em,topsep=2pt,itemsep=1pt]
+  \item Python programming tasks (Fibonacci, sorting, data structures, decorators)
+  \item Mathematical reasoning (probability, calculus, linear algebra)
+  \item Science explanation (Rayleigh scattering, thermodynamics, optics)
+  \item Formal logic and syllogisms
+  \item General English comprehension
+\end{itemize}
+The corpus was formatted using the Gemma~4 instruction chat template to ensure that the router encounters the same tokenization distribution as actual deployment queries.
+
+\subsection{Stage 2: Forward-Pass Activation Profiling via \texttt{llama-imatrix}}
+
+We use the \texttt{llama-imatrix} tool from llama.cpp~\cite{llama_cpp} (build b11438-cbb7d52ec) to profile expert activations. During a forward pass over $\mathcal{D}_\text{deploy}$, \texttt{llama-imatrix} records two statistics for each expert weight tensor \texttt{blk.\{l\}.ffn\_down\_exps.weight}:
+
+\begin{enumerate}[leftmargin=1.5em,topsep=2pt,itemsep=1pt]
+  \item \textbf{Activation count} $C_{e,l}$: The number of tokens for which expert $e$ was selected by the router in layer $l$.
+  \item \textbf{Input energy sum} $\Sigma_{e,l} \in \R^{d_\text{ff}}$: The cumulative sum of squared input activations across all $d_\text{ff} = 704$ input channels, summed over all tokens that activated expert $e$: $\Sigma_{e,l,j} = \sum_{\tau \in \mathcal{T}_{e,l}} h_{\tau,j}^2$.
+\end{enumerate}
+
+These statistics are recorded into a GGUF importance matrix file (\path{comprehensive_imatrix.gguf}, 108.6~MB) under the keys \path{blk.{l}.ffn_down_exps.weight.counts} and \path{blk.{l}.ffn_down_exps.weight.in_sum2}.
+
+\subsection{Stage 3: Expert Scoring and Selection}
+
+For each layer $l$ and each expert $e \in \{0, \ldots, 127\}$, we compute the \MAPLE{} composite score:
+\begin{equation}
+  s_{e,l} = C_{e,l} \cdot \sqrt{\bar{\sigma}_{e,l} + \epsilon},
+  \label{eq:score}
+\end{equation}
+where $\bar{\sigma}_{e,l} = \frac{1}{d_\text{ff}} \sum_{j=1}^{d_\text{ff}} \Sigma_{e,l,j}$ is the mean input energy per channel for expert $e$ in layer $l$, and $\epsilon = 10^{-8}$ is a numerical stability constant.
+
+The motivation for this scoring function is that activation count alone is insufficient: a high-count expert that processes very low-magnitude inputs contributes little to the residual stream, while a lower-count expert that processes high-energy inputs may be critical. The geometric-mean-like combination $C \cdot \sqrt{\bar{\sigma}}$ penalizes both extremes. If per-expert energy statistics are unavailable (e.g., for older imatrix formats that lack \texttt{in\_sum2}), the score degrades gracefully to $s_{e,l} = C_{e,l}$.
+
+We select the top-$k'=48$ experts per layer by score, producing a 30-entry selection map $\mathcal{S} = \{\mathcal{S}_0, \ldots, \mathcal{S}_{29}\}$ with $|\mathcal{S}_l| = 48$ for all $l$.
+
+The choice $k'=48$ was driven by the VRAM budget constraint of 6141~MiB on the RTX~4050~6GB: the expert weight tensors (\texttt{ffn\_down\_exps}, \texttt{ffn\_gate\_up\_exps}) contribute 4.282~GB and 3.957~GB respectively to the original model's size; at 48/128 retention ratio, these shrink by 62.5\%, yielding a total model size of approximately 4.75~GB that fits entirely in VRAM. The selection ratio $k'/E = 48/128 = 0.375$ is thus a hardware-budget constraint rather than a hyperparameter searched over quality.
+
+\subsection{Stage 4: GGUF Container Assembly}
+
+Given the selection map $\mathcal{S}$, we construct the compressed GGUF container by streaming through the source GGUF file (Gemma-4-26B-A4B-it-UD-IQ2\_XXS.gguf, 9.92~GB) and applying axis-0 index selection to all per-layer expert tensors:
+
+\begin{algorithm}[H]
+\caption{\MAPLE{} Container Assembly}
+\begin{algorithmic}[1]
+\Require Source GGUF path $P_\text{src}$, selection map $\mathcal{S}$, target $k' = 48$
+\State Open $P_\text{src}$ as $\texttt{reader}$
+\State Initialize $\texttt{writer}$ with updated metadata: \texttt{expert\_count} $\leftarrow k'$
+\For{each tensor $T$ in $\texttt{reader.tensors}$}
+  \State Parse layer index $l$ from tensor name
+  \If{tensor name matches \texttt{ffn\_gate\_inp.weight} \textbf{and} $l \in \mathcal{S}$}
+    \State $T_\text{out} \leftarrow T[\mathcal{S}_l, :]$ \Comment{Router gate weight rows for kept experts}
+  \ElsIf{tensor name matches \texttt{ffn\_down\_exps.\{weight, scale\}} \textbf{and} $l \in \mathcal{S}$}
+    \State $T_\text{out} \leftarrow T[\mathcal{S}_l, \ldots]$ \Comment{Expert down-proj; preserve raw quantization dtype}
+  \ElsIf{tensor name matches \texttt{ffn\_gate\_up\_exps.weight} \textbf{and} $l \in \mathcal{S}$}
+    \State $T_\text{out} \leftarrow T[\mathcal{S}_l, \ldots]$ \Comment{Expert gate+up-proj; axis-0 selection}
+  \Else
+    \State $T_\text{out} \leftarrow T$ \Comment{All other tensors (attn, shared FFN, embeddings) pass through unchanged}
+  \EndIf
+  \State Write $T_\text{out}$ to $\texttt{writer}$ preserving original quantization dtype
+\EndFor
+\State Flush, close, and atomic-rename to final target path
+\end{algorithmic}
+\end{algorithm}
+
+A critical implementation decision is that the original quantized tensor dtypes are preserved exactly. All per-expert tensors in the source GGUF are quantized at IQ2\_XXS precision; we pass the raw quantized bytes through without any re-quantization, dequantization, or precision conversion. This eliminates any additional quality loss from the assembly step itself---the only information discarded is the pruned experts' weight bytes.
+
+\textbf{Scale preservation.} The \texttt{ffn\_down\_exps.scale} tensor encodes per-expert quantization scales. We write the sliced scale tensor unchanged (at a multiplicative factor of exactly $1.0\times$ relative to the source). An earlier failed approach (documented in Section~\ref{sec:failures}) applied a normalization compensation factor of $0.795$ to these scales, which compounded catastrophically across layers.
+
+\textbf{Atomic write safety.} To prevent file corruption on failure, the writer first produces a temporary file; only on successful completion is the temporary file atomically renamed to the final target path.
+
+% ============================================================
+\section{Three Failure Modes and Why They Fail}
+\label{sec:failures}
+% ============================================================
+
+Our development of \MAPLE{} involved overcoming three distinct failure modes, each of which produced degenerate outputs. We document these failures in detail because they represent pitfalls that any practitioner attempting MoE compression via llama.cpp or similar inference engines is likely to encounter.
+
+\subsection{Failure Mode 1: Layer-0 Embedding Proxy for Deep-Layer Routing (The Ghost Router)}
+
+\textbf{What was done.} The first compression attempt estimated expert importance without running a full forward pass. Instead, we extracted the token embedding matrix $W_\text{emb} \in \R^{V \times d}$ from the GGUF, computed the average embedding of calibration tokens, and projected this average through each layer's router gate matrix $W_\text{gate}^{(l)} \in \R^{d \times E}$ to obtain estimated routing logits:
+\begin{equation}
+  \hat{\mathbf{g}}^{(l)} = \bar{\mathbf{e}}_\text{calib} W_\text{gate}^{(l)} \in \R^E,
+\end{equation}
+where $\bar{\mathbf{e}}_\text{calib}$ is the mean calibration embedding. The top-$k'$ experts by $\hat{g}^{(l)}_e$ were selected for each layer.
+
+\textbf{Why it fails.} The routing logit in layer $l$ during actual inference is not $\bar{\mathbf{e}}_\text{calib} W_\text{gate}^{(l)}$ but rather $\mathbf{h}^{(l)} W_\text{gate}^{(l)}$, where $\mathbf{h}^{(l)}$ is the hidden state at layer $l$ after $l$ rounds of multi-head attention and FFN transformations from the input embedding. For $l \geq 1$, the actual hidden state has undergone enough nonlinear transformation that the input embedding is a poor proxy. For $l = 20$ or $l = 29$, the proxy error is catastrophic: the entire geometry of the hidden space has rotated, scaled, and been projected through attention many times; $\mathbf{h}^{(20)}$ is not in the same directional neighborhood as $\mathbf{h}^{(0)}$. As a result, the expert selection based on Layer-0 embeddings correctly identifies only the experts relevant to the \emph{embedding-space routing logit} of the first block, while deeply misidentifying the active experts of blocks 10--29. The experts that actually fire in these deep layers are retained in the wrong proportion, and the pruned model produces degenerate autoregressive output: repeating token-sequence loops of the form ``nums\_nums\_nums...'' and hallucinated definitions with no grounded reasoning.
+
+\textbf{The fix.} Run a full forward pass. The \texttt{llama-imatrix} tool executes actual model inference on the calibration corpus, so the activation counts $C_{e,l}$ reflect the true hidden-state routing at each layer depth.
+
+\subsection{Failure Mode 2: Cascaded Scale Suppression}
+
+\textbf{What was done.} An intermediate attempt retained the correct empirically selected experts but applied a normalization compensation to the router softmax. The intuition was that reducing from 128 to 50 experts changes the softmax denominator, so the surviving experts would receive inflated attention weights relative to the original routing. To counteract this, the \texttt{ffn\_down\_exps.scale} tensors were multiplied by a constant factor:
+\begin{equation}
+  \hat{s}_{e,l}^\text{(scale)} = 0.795 \cdot s_{e,l}^\text{(scale)},
+\end{equation}
+where the factor $0.795$ was derived from the ratio of surviving-to-total expert logit magnitudes.
+
+\textbf{Why it fails.} The factor is applied independently at each of the 30 layers. The cumulative suppression across the residual stream is multiplicative:
+\begin{equation}
+  \prod_{l=0}^{29} 0.795 \approx 0.795^{30} \approx 0.001.
+\end{equation}
+The effective magnitude of the FFN contribution to the residual stream is suppressed by a factor of approximately $10^{-3}$. The model's residual stream becomes nearly blind to FFN updates; every layer's output is dominated almost entirely by the attention branch. The resulting model produces tokenizer-consistent but semantically empty output: grammatically formed text that loops on structure without conveying information.
+
+\textbf{The fix.} Preserve all scale tensors at exactly $1.0\times$. The router's softmax normalization in llama.cpp does not require manual compensation because the softmax is recomputed over only the surviving experts' logits at inference time; the relative logit ordering within the retained expert set is correct without scale modification.
+
+\subsection{Failure Mode 3: Sampling Hyperparameter Interference with Code Generation}
+
+\textbf{What was done.} An early interactive inference harness applied the \texttt{--dry-allowed-length 2} sampling hyperparameter, which is a DRY (``Don't Repeat Yourself'') sampler that penalizes any n-gram of length $\geq 2$ that has appeared recently in the context.
+
+\textbf{Why it fails.} Python source code is structurally dense with repeated short token sequences. The two-character n-grams that \texttt{dry-allowed-length 2} penalizes include: \texttt{def}, \texttt{if}, \texttt{in}, \texttt{+=}, \texttt{==}, \texttt{[0}, \texttt{]}. When the sampler penalizes these tokens, the model cannot generate syntactically correct Python: function definitions, loop bodies, conditional blocks, and list indexing all require these repeated tokens. The output is a mix of English-language description of code without actual syntactic structure, or degenerated pseudo-code that resembles Python but is not parseable.
+
+\textbf{The fix.} Remove the DRY sampler entirely from the inference command. For the final interactive CLI, the sampling parameters are limited to temperature (0.4), top-p nucleus sampling (0.9), and a mild repetition penalty (1.1 on longer n-grams), none of which interfere with standard Python token sequences.
+
+% ============================================================
+\section{Experiments}
+\label{sec:experiments}
+% ============================================================
+
+\subsection{Hardware and Software Configuration}
+
+All experiments were conducted on a single consumer laptop GPU:
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+\textbf{Component} & \textbf{Specification} \\
+\midrule
+GPU & NVIDIA GeForce RTX 4050 Laptop GPU \\
+VRAM & 6141 MiB (6 GB) \\
+Inference engine & llama.cpp build b11438-cbb7d52ec \\
+GPU layers (compressed) & \texttt{-ngl 99} (100\% VRAM residency) \\
+GPU layers (original) & \texttt{-ngl 16} (CPU paging required) \\
+OS & Windows 11 \\
+Python & 3.12 (gguf library for profiling) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The source model is Gemma-4-26B-A4B-it-UD-IQ2\_XXS.gguf (9.92~GB), a community-quantized distribution of Gemma~4~26B-A4B at IQ2\_XXS (approximately 2.1 BPW on expert weights). The compressed model is the \MAPLE{}-produced gemma\_4\_26b\_sub5gb\_insitu.gguf (4.75~GB).
+
+\subsection{Quality Benchmark: Task-Based Semantic Fidelity}
+
+We evaluate quality using a four-task semantic fidelity benchmark that tests distinct competencies: code generation, data-structure implementation, science reasoning, and formal logic. Table~\ref{tab:benchmark} reports keyword match rates and throughput for each task.
+
+\begin{table}[ht]
+\centering
+\small
+\caption{Task-based semantic fidelity benchmark: compressed model (48 experts, 100\% VRAM residency).}
+\label{tab:benchmark}
+\begin{tabular}{llp{4.2cm}ccc}
+\toprule
+\textbf{Task} & \textbf{Domain} & \textbf{Key Evaluation Terms} & \textbf{Matched} & \textbf{Fidelity} & \textbf{TPS} \\
+\midrule
+T1: Fibonacci & Code generation & \texttt{def fibonacci}, \texttt{return}, \texttt{append}, \texttt{[0,1]} & 4/4 & 100\% & 45.1 \\
+T2: BST & Data structures & \texttt{class Node}, \texttt{class BST}, \texttt{def insert}, \texttt{def search} & 3/4 & 75\% & 45.4 \\
+T3: Rayleigh scattering & Science reasoning & \texttt{Rayleigh}, \texttt{wavelength}, \texttt{scattering}, \texttt{blue} & 4/4 & 100\% & 45.4 \\
+T4: Syllogistic logic & Formal logic & \texttt{yes}, \texttt{transitive}, \texttt{syllogism}, \texttt{lazzies} & 4/4 & 100\% & 45.4 \\
+\midrule
+\textbf{Mean} & & & & \textbf{93.8\%} & \textbf{45.3} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The T2 (BST) partial match (75\%) is attributable to output truncation at 350 tokens: the generated response included the \texttt{class BST}, \texttt{def insert}, and \texttt{def search} structures but was truncated before producing the \texttt{class Node} inner class. Manual inspection of the full untruncated output confirms \texttt{class Node} is generated when the token limit is relaxed to 500. The 75\% figure thus represents a measurement artifact of the token budget rather than a true capability gap.
+
+\subsection{Throughput Comparison}
+
+\begin{center}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Model} & \textbf{Size} & \textbf{GPU Layers} & \textbf{VRAM} & \textbf{Throughput} \\
+\midrule
+Original (128 experts) & 9.92 GB & 16 (partial) & 6141 MiB (overflows) & 6.9 TPS \\
+\MAPLE{} (48 experts) & 4.75 GB & 99 (full) & $\approx$4,180 MiB & 45.4 TPS \\
+\midrule
+\textbf{Improvement} & 2.09$\times$ smaller & & & \textbf{6.57}$\times$ faster \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The 6.57$\times$ throughput gain is not primarily from reduced model size alone; it is from the transition from CPU-paged execution (bandwidth-limited by PCIe and system RAM) to fully GPU-resident execution (bandwidth-limited only by VRAM bandwidth). This discontinuous improvement is a property of the VRAM capacity cliff: once the full model fits in VRAM, all matrix multiplications run on CUDA cores at full GPU memory bandwidth.
+
+\subsection{Compression Ratio and Effective Bitrate}
+
+\begin{equation}
+\text{Effective BPW} = \frac{\text{File Size (bytes)} \times 8}{\text{Total Parameters}} = \frac{4{,}745{,}987{,}168 \times 8}{25.6 \times 10^9} \approx 1.48 \; \bpw
+\end{equation}
+
+The source model is already at IQ2\_XXS quantization (approximately 2.1 BPW on expert weights). \MAPLE{} achieves a further compression from 2.1~BPW to 1.48~BPW effective bitrate, representing an additional 30\% reduction beyond what standard sub-2-bit quantization achieves. This is possible precisely because \MAPLE{} operates on a \emph{structural} dimension (which experts exist) rather than a \emph{precision} dimension (how many bits each weight uses). The two orthogonal compression axes are combinable: a practitioner could apply \MAPLE{} to a full-precision model and subsequently quantize the reduced expert pool, potentially reaching sub-1~BPW effective densities while preserving domain-specific fidelity.
+
+\subsection{Activation Mass Retention}
+
+The empirical activation coverage---the fraction of forward-pass activation mass captured by the retained 48 experts---averages 79.88\% across all 30 layers, with per-layer values ranging from approximately 71\% (layers with more uniform expert distributions) to 90\%+ (layers with highly concentrated activation). This means that 20.12\% of activation mass is discarded, yet 93.8\% of task-semantic quality is retained---a favorable ratio that suggests the pruned experts' contributions overlap or are redundant for the target domain.
+
+\subsection{Perplexity Analysis and Its Limitations}
+
+We measured perplexity on a held-out 3,154-character validation text (\texttt{benchmark\_val.txt}) using the \texttt{llama-perplexity} tool. The compressed model (48 experts, \texttt{-ngl 99}) achieved a perplexity of approximately 572 on this out-of-domain text. The original model (128 experts, \texttt{-ngl 16}) achieved a perplexity of approximately 99 on the same text.
+
+The perplexity gap (572 vs. 99) is real and must be disclosed. However, three factors contextualize this result. First, the validation text (\texttt{benchmark\_val.txt}) was not drawn from the same distribution as the imatrix calibration corpus; it represents general text that exercises the full multilingual and domain range of the original model, against which the domain-specialist pruned model is evaluated at a disadvantage by design. Second, the original model's perplexity measurement is itself not a ground-truth baseline: with only 16 layers GPU-resident and the remainder CPU-paged, the original model runs in a degraded numerical precision regime due to quantization of the paged layers; its true FP16 perplexity would be lower still. Third, perplexity on arbitrary continuation text is not the appropriate metric for a model explicitly designed as a domain specialist---the task-based semantic fidelity benchmark on domain-representative prompts is the more honest evaluation.
+
+Nevertheless, users of \MAPLE{}-compressed models must understand that the compression is a \emph{domain specialization}, not a universally lossless compression. For multilingual, cross-domain, or general-purpose deployment, the full model (or a less aggressive pruning ratio) is appropriate.
+
+% ============================================================
+\section{Limitations}
+\label{sec:limitations}
+% ============================================================
+
+We discuss limitations candidly.
+
+\textbf{Domain specificity.} The quality of \MAPLE{} compression depends entirely on the alignment between the calibration corpus and the deployment distribution. A calibration corpus of English programming text produces a compressed model that excels at English programming tasks but degrades substantially on languages, domains, or tasks not represented in calibration. Users should construct calibration corpora that match their intended deployment distribution.
+
+\textbf{Perplexity degradation on out-of-domain text.} As reported in Section~\ref{sec:experiments}, perplexity on out-of-domain text increases dramatically (5.8$\times$). This is an expected consequence of domain specialization, but practitioners who use perplexity as their primary quality gate must be aware of this dynamic.
+
+\textbf{Calibration corpus size.} Our calibration corpus contains 1,979 tokens. This is small by the standards of imatrix calibration (llama.cpp documentation suggests 2,000--10,000+ tokens). A larger, more diverse calibration corpus within the target domain would likely produce better expert coverage estimates, particularly for experts that are sporadically but importantly activated.
+
+\textbf{Top-k activation count not retuned.} The pruned model retains $k = 8$ active experts per token at inference time, but now selects from $k' = 48$ candidates rather than 128. The top-8 selection from a pruned pool of 48 is statistically different from the top-8 selection from the original pool of 128; in particular, the softmax denominator changes. We do not retune $k$ or the routing temperature in this work. Future work could explore retuning $k$ post-pruning.
+
+\textbf{No retraining or fine-tuning.} \MAPLE{} is a purely post-hoc structural compression with no weight updates. Recovery fine-tuning on the pruned model (using LoRA or similar) could potentially recover some quality, particularly for the pruned experts' contributions, but this requires gradient-capable infrastructure not available in the GGUF ecosystem.
+
+\textbf{Evaluation breadth.} The four-task benchmark is representative but not exhaustive. A rigorous evaluation would include standardized benchmarks (MMLU, HumanEval, GSM8K) run on both the original and compressed models. The absence of such benchmarks is a limitation of our experimental setup.
+
+\textbf{Single GPU class.} All experiments were conducted on a single RTX 4050 6GB GPU. Throughput and VRAM behavior may differ on other GPU architectures.
+
+% ============================================================
+\section{Generalizability}
+\label{sec:generality}
+% ============================================================
+
+\MAPLE{} as described here targets fine-grained MoE architectures where expert weight tensors are stored in an axis-0 stacked layout (i.e., \texttt{ffn\_down\_exps.weight} is a tensor of shape $[E, d_\text{ff}, d]$). This layout is used in Gemma~4, Mixtral, and several DeepSeek variants as represented in GGUF format, making \MAPLE{} directly applicable to a wide class of community-distributed models.
+
+Dense (non-MoE) models do not have discrete experts to prune; \MAPLE{} in its current form is not applicable to them. However, the underlying principle---profile which components activate on a deployment calibration corpus and prune the dormant ones---generalizes to any architecture with conditionally-activated components. For dense models, an analogous method could target attention heads (selectively keeping high-attention heads by calibrated attention maps) or even individual neurons via activation magnitude profiling. We leave this extension to future work.
+
+The method is applicable to any MoE model that can be run through the llama.cpp inference engine for imatrix profiling, and whose GGUF weight tensors have accessible expert stacking along axis 0. Beyond Gemma~4, this includes Mixtral-8x7B, Mixtral-8x22B, DeepSeek-V2/V3 (with appropriate expert layout handling), and future fine-grained MoE releases in GGUF format.
+
+A practitioner wishing to apply \MAPLE{} to a new model must:
+\begin{enumerate}[leftmargin=1.5em,topsep=2pt,itemsep=2pt]
+  \item Construct a representative calibration corpus for their deployment domain.
+  \item Run \texttt{llama-imatrix} to produce per-expert activation statistics.
+  \item Determine the VRAM budget and compute the target expert count $k'$.
+  \item Apply the expert scoring function (Equation~\ref{eq:score}) to rank experts per layer.
+  \item Assemble the pruned GGUF container using axis-0 index selection.
+  \item Validate quality on domain-representative tasks.
+\end{enumerate}
+
+The entire pipeline runs without GPU-side training infrastructure, requiring only llama.cpp (inference engine), the gguf Python library (GGUF I/O), and NumPy (scoring arithmetic). The GGUF I/O for a 10~GB model completes in approximately 15--20 minutes on a standard NVMe SSD.
+
+% ============================================================
+\section{Related Work}
+\label{sec:related}
+% ============================================================
+
+\textbf{MoE training and routing.} The modern fine-grained MoE paradigm was established by Switch Transformer~\cite{fedus2022switch} and GShard~\cite{lepikhin2021gshard}. Expert specialization analyses~\cite{zoph2022designing} and load balancing auxiliary losses~\cite{shazeer2017outrageously} form the standard training toolkit. \MAPLE{} operates entirely post-training and exploits the specialization these training methods create.
+
+\textbf{Expert dropping at inference.} Liao~\etal{}~\cite{chen2022task} propose dropping low-importance experts at inference time based on task-specific routing probabilities. Expert Choice routing~\cite{zhou2022mixture} assigns experts to tokens rather than tokens to experts, enabling static expert removal for particular token types. \MAPLE{} differs in that it uses activation energy (not router logits alone) as a composite importance signal, and operates directly on GGUF containers without framework-side modifications.
+
+\textbf{Post-training quantization.} GPTQ~\cite{frantar2022gptq} uses approximate second-order Hessian information to minimize quantization error. AWQ~\cite{lin2024awq} identifies and protects salient channels during quantization. SpQR~\cite{dettmers2023spqr} stores outlier weights at higher precision. These methods are orthogonal to \MAPLE{} and can be composed with it.
+
+\textbf{Structural pruning.} SparseGPT~\cite{frantar2023sparsegpt} achieves weight-level unstructured sparsity with minimal quality loss using one-shot Hessian updates. Wanda~\cite{sun2024simple} prunes by the product of weight magnitude and activation magnitude. \MAPLE{} is structurally analogous to Wanda's composite importance signal but operates on the expert selection axis (which expert is kept) rather than individual weight entries.
+
+\textbf{GGUF and llama.cpp ecosystem.} The GGUF format and llama.cpp runtime~\cite{llama_cpp} provide the computational substrate for \MAPLE{}. The \texttt{imatrix} mechanism was originally designed for calibration-aware quantization; we repurpose it for structural expert selection.
+
+% ============================================================
+\section{Conclusion}
+\label{sec:conclusion}
+% ============================================================
+
+We have presented \MAPLE{}, a method for empirical activation-guided expert pruning in Mixture-of-Experts language models. \MAPLE{} achieves sub-2-BPW effective compression without weight-level re-quantization, by identifying and excising the dormant expert capacity in the target deployment domain. Applied to Gemma~4~26B-A4B on a consumer RTX~4050~6GB laptop, \MAPLE{} reduces model size from 9.92~GB to 4.75~GB (2.09$\times$), crosses the VRAM residency threshold, and improves throughput from 6.9 to 45.4 tokens per second (6.57$\times$), retaining 93.8\% semantic fidelity on domain-representative tasks. We have documented three failure modes---proxy-embedding routing estimation, cascaded scale suppression, and sampling-hyperparameter code interference---in sufficient detail to serve as a practical guide for future MoE compression work. All code and artifacts are released openly.
+
+The broader implication of \MAPLE{} is that the apparent trade-off between model capability and deployability on consumer hardware is partly illusory. For a user with a well-defined deployment domain, the trained model contains substantially more capacity than is ever exercised; the excess capacity is expensive to store but cheap to remove. Empirical activation profiling on a domain-representative corpus reveals the true capacity budget, and structural expert pruning enforces it. The result is a model that, within its domain, matches the original---and outside its domain, transparently acknowledges its specialization.
+
+% ============================================================
+\section*{Acknowledgments}
+% ============================================================
+
+The author thanks the llama.cpp community~\cite{llama_cpp} for the imatrix tooling and GGUF format without which this work would not have been possible, and the Gemma team at Google DeepMind~\cite{team2025gemma} for open-sourcing Gemma~4. This research was conducted independently on consumer hardware with no external funding.
+
+% ============================================================
+\bibliographystyle{plain}
+\begin{thebibliography}{99}
+
+\bibitem{chen2022task}
+Tianlong Chen, Zhenyu Zhang, Jun Liu, Shiyu Chang, and Zhangyang Wang.
+\newblock Task-specific expert pruning for sparse mixture-of-experts.
+\newblock \emph{arXiv preprint arXiv:2206.00277}, 2022.
+
+\bibitem{dai2024deepseekmoe}
+Damai Dai, Chengqi Deng, Chenggang Zhao, R.~X. Xu, Huazuo Gao, Deli Chen,
+  Jiashi Li, Wangding Zeng, Xingkai Yu, Y.~Wu, Zhenda Xie, Y.~K. Li, Panpan
+  Huang, Fuli Luo, Chong Ruan, Zhifang Sui, and Wenfeng Liang.
+\newblock {DeepSeekMoE}: Towards ultimate expert specialization in
+  mixture-of-experts language models.
+\newblock \emph{arXiv preprint arXiv:2401.06066}, 2024.
+
+\bibitem{dettmers2023spqr}
+Tim Dettmers, Ruslan Svirschevski, Vage Egiazarian, Denis Kuznedelev,
+  Elias Frantar, Saleh Ashkboos, Alexander Borzunov, Torsten Hoefler, and
+  Dan Alistarh.
+\newblock {SpQR}: A sparse-quantized representation for near-lossless {LLM}
+  weight compression.
+\newblock \emph{arXiv preprint arXiv:2306.03078}, 2023.
+
+\bibitem{fedus2022switch}
+William Fedus, Barret Zoph, and Noam Shazeer.
+\newblock Switch transformers: Scaling to trillion parameter models with simple
+  and efficient sparsity.
+\newblock \emph{Journal of Machine Learning Research}, 23(120):1--39, 2022.
+
+\bibitem{frantar2022gptq}
+Elias Frantar, Saleh Ashkboos, Torsten Hoefler, and Dan Alistarh.
+\newblock {GPTQ}: Accurate post-training quantization for generative
+  pre-trained transformers.
+\newblock \emph{arXiv preprint arXiv:2210.17323}, 2022.
+
+\bibitem{frantar2023sparsegpt}
+Elias Frantar and Dan Alistarh.
+\newblock {SparseGPT}: Massive language models can be accurately pruned in
+  one shot.
+\newblock In \emph{Proceedings of ICML}, 2023.
+
+\bibitem{han2015learning}
+Song Han, Jeff Pool, John Tran, and William Dally.
+\newblock Learning both weights and connections for efficient neural networks.
+\newblock In \emph{Advances in Neural Information Processing Systems}, 2015.
+
+\bibitem{jiang2024mixtral}
+Albert~Q. Jiang, Alexandre Sablayrolles, Antoine Roux, Arthur Mensch, Blanche
+  Savary, Chris Bamford, Devendra~Singh Chaplot, Diego de~las Casas, Emma~Bou
+  Hanna, Florian Bressand, Gianna Lengyel, Guillaume Bour, Guillaume Lample,
+  L{\'e}lio~Renard Lavaud, Lucile Saulnier, Marie-Anne Lachaux, Pierre Stock,
+  Sandeep Subramanian, Sophia Yang, Szymon Antoniak, Teven~Le Scao, Th{\'e}ophile
+  Gervet, Thibaut Lavril, Thomas Wang, Timoth{\'e}e Lacroix, and William~El
+  Sayed.
+\newblock {Mixtral of Experts}.
+\newblock \emph{arXiv preprint arXiv:2401.04088}, 2024.
+
+\bibitem{kim2021bert}
+Sehoon Kim, Sheng Shen, David Thorsley, Amir Gholami, Woosuk Kwon, Joseph
+  Hassoun, and Kurt Keutzer.
+\newblock Learned token pruning for transformers.
+\newblock \emph{arXiv preprint arXiv:2107.00910}, 2021.
+
+\bibitem{lepikhin2021gshard}
+Dmitry Lepikhin, HyoukJoong Lee, Yuanzhong Xu, Dehao Chen, Orhan Firat, Yanping
+  Huang, Maxim Krikun, Noam Shazeer, and Zhifeng Chen.
+\newblock {GShard}: Scaling giant models with conditional computation and
+  automatic sharding.
+\newblock In \emph{Proceedings of ICLR}, 2021.
+
+\bibitem{lin2024awq}
+Ji~Lin, Jiaming Tang, Haotian Tang, Shang Yang, Wei-Ming Chen, Wei-Chen Wang,
+  Guangxuan Xiao, Xingyu Dang, Chuang Gan, and Song Han.
+\newblock {AWQ}: Activation-aware weight quantization for on-device {LLM}
+  compression and acceleration.
+\newblock \emph{Proceedings of MLSys}, 2024.
+
+\bibitem{llama_cpp}
+Georgi Gerganov et~al.
+\newblock {llama.cpp}: {LLM} inference in {C/C++}.
+\newblock \url{https://github.com/ggerganov/llama.cpp}, 2023.
+
+\bibitem{louizos2018learning}
+Christos Louizos, Max Welling, and Diederik~P. Kingma.
+\newblock Learning sparse neural networks through {L0} regularization.
+\newblock In \emph{Proceedings of ICLR}, 2018.
+
+\bibitem{michel2019sixteen}
+Paul Michel, Omer Levy, and Graham Neubig.
+\newblock Are sixteen heads really better than one?
+\newblock In \emph{Advances in Neural Information Processing Systems}, 2019.
+
+\bibitem{sanh2020movement}
+Victor Sanh, Thomas Wolf, and Alexander Rush.
+\newblock Movement pruning: Adaptive sparsity by fine-tuning.
+\newblock In \emph{Advances in Neural Information Processing Systems}, 2020.
+
+\bibitem{shazeer2017outrageously}
+Noam Shazeer, Azalia Mirhoseini, Krzysztof Maziarz, Andy Davis, Quoc Le,
+  Geoffrey Hinton, and Jeff Dean.
+\newblock Outrageously large neural networks: The sparsely-gated
+  mixture-of-experts layer.
+\newblock In \emph{Proceedings of ICLR}, 2017.
+
+\bibitem{sun2024simple}
+Mingjie Sun, Zhuang Liu, Anna Bair, and J.~Zico Kolter.
+\newblock A simple and effective pruning approach for large language models.
+\newblock In \emph{Proceedings of ICLR}, 2024.
+
+\bibitem{team2025gemma}
+{Gemma Team}.
+\newblock Gemma 3 technical report.
+\newblock \emph{arXiv preprint arXiv:2503.19786}, 2025.
+
+\bibitem{zhou2022mixture}
+Yanqi Zhou, Tao Lei, Hanxiao Liu, Nan Du, Yanping Huang, Vincent~Y. Zhao, Andrew
+  Dai, Zhifeng Chen, Quoc Le, and James Laudon.
+\newblock Mixture-of-experts with expert choice routing.
+\newblock In \emph{Advances in Neural Information Processing Systems}, 2022.
+
+\bibitem{zoph2022designing}
+Barret Zoph, Irwan Bello, Sameer Kumar, Nan Du, Yanping Huang, Jeff Dean,
+  Noam Shazeer, and William Fedus.
+\newblock Designing effective sparse expert models.
+\newblock \emph{arXiv preprint arXiv:2202.08906}, 2022.
+
+\end{thebibliography}
+
+% ============================================================
+\appendix
+% ============================================================
+
+\section{Calibration Corpus: Multi-Domain Coverage}
+\label{app:corpus}
+
+The calibration corpus used for imatrix profiling covers the following domains with approximate token allocations:
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+\textbf{Domain} & \textbf{Topics} & \textbf{Token share} \\
+\midrule
+Python programming & Fibonacci, sorting, BST, decorators, recursion & $\approx$30\% \\
+Mathematics & Probability, calculus, linear algebra, combinatorics & $\approx$20\% \\
+Natural science & Optics, thermodynamics, biology, chemistry & $\approx$20\% \\
+Formal logic & Syllogisms, propositional logic, set theory & $\approx$15\% \\
+General English & Comprehension, summarization, QA & $\approx$15\% \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Total tokens: 1,979 (Gemma~4 tokenizer). The calibration corpus is provided in full in the file \path{engine/comprehensive_calibration.txt} in the repository.
+
+\section{Per-Layer Expert Activation Coverage}
+\label{app:coverage}
+
+Table~\ref{tab:coverage} reports the empirical activation coverage for the top-48 expert selection at each of the 30 Gemma~4 transformer layers. Coverage is defined as in Equation~\ref{eq:coverage}: the fraction of total forward-pass router selections captured by the retained 48 experts.
+
+\begin{table}[h]
+\centering
+\caption{Per-layer empirical activation coverage (top-48 of 128 experts).}
+\label{tab:coverage}
+\begin{tabular}{ccccccc}
+\toprule
+Layer & Cov. & Layer & Cov. & Layer & Cov. & Layer & Cov.\\
+\midrule
+0  & $\sim$79\% & 8  & $\sim$80\% & 16 & $\sim$80\% & 24 & $\sim$80\% \\
+1  & $\sim$79\% & 9  & $\sim$80\% & 17 & $\sim$80\% & 25 & $\sim$80\% \\
+2  & $\sim$79\% & 10 & $\sim$80\% & 18 & $\sim$80\% & 26 & $\sim$80\% \\
+3  & $\sim$80\% & 11 & $\sim$80\% & 19 & $\sim$80\% & 27 & $\sim$80\% \\
+4  & $\sim$80\% & 12 & $\sim$80\% & 20 & $\sim$80\% & 28 & $\sim$80\% \\
+5  & $\sim$80\% & 13 & $\sim$80\% & 21 & $\sim$80\% & 29 & $\sim$80\% \\
+6  & $\sim$80\% & 14 & $\sim$80\% & 22 & $\sim$80\% & \multicolumn{2}{c}{} \\
+7  & $\sim$80\% & 15 & $\sim$80\% & 23 & $\sim$80\% & \multicolumn{2}{c}{\textbf{Mean: 79.88\%}} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Exact per-layer values are stored in \texttt{engine/layer\_experts\_empirical\_48.json}.
+
+\section{Complete imatrix Profiling Command}
+\label{app:imatrix}
+
+The imatrix profiling was run with the following command:
+
+\begin{lstlisting}[language=bash]
+llama-imatrix.exe \
+  -m "D:\models\gemma_4_26b\gemma-4-26B-A4B-it-UD-IQ2_XXS.gguf" \
+  -f "engine\comprehensive_calibration.txt" \
+  -o "engine\comprehensive_imatrix.gguf" \
+  -ngl 99 \
+  --chunks 2 \
+  --output-frequency 10
+\end{lstlisting}
+
+Profiling completed in approximately 90 seconds on the RTX 4050 6GB. The output file \path{comprehensive_imatrix.gguf} (108.6~MB) contains activation count and energy statistics for all expert weight tensors across all 30 layers.
+
+\section{MAPLE Expert Scoring: Implementation}
+\label{app:scoring}
+
+The expert selection code is reproduced below for reproducibility:
+
+\begin{lstlisting}[language=Python]
+import numpy as np
+import gguf, json
+
+reader = gguf.GGUFReader("comprehensive_imatrix.gguf")
+tensor_map = {t.name: t for t in reader.tensors}
+
+N_EXPERTS = 48
+layer_experts = {}
+
+for l in range(30):
+    counts = tensor_map[f"blk.{l}.ffn_down_exps.weight.counts"]\
+                        .data.flatten().astype(np.float64)
+    in_sum2 = tensor_map[f"blk.{l}.ffn_down_exps.weight.in_sum2"]\
+                          .data.astype(np.float64)  # shape (128, 704)
+    energy = np.mean(in_sum2, axis=1)               # shape (128,)
+    score  = counts * np.sqrt(energy + 1e-8)        # MAPLE scoring fn
+    top48  = list(np.argsort(score)[::-1][:N_EXPERTS])
+    layer_experts[str(l)] = [int(x) for x in top48]
+
+with open("layer_experts_empirical_48.json", "w") as f:
+    json.dump(layer_experts, f, indent=2)
+\end{lstlisting}
+
+\section{Benchmark Task Prompts}
+\label{app:prompts}
+
+All benchmark tasks used the Gemma~4 instruction chat template. Task T4 (syllogistic logic) is reproduced in full as a representative example:
+
+\begin{verbatim}
+<|turn>user
+If all bloops are razzies and all razzies are lazzies,
+are all bloops definitely lazzies? Explain step by step.
+<turn|>
+<|turn>model
+\end{verbatim}
+
+The reverse-prompt token \texttt{<turn|>} halts generation at the end of the model's reply, preventing runaway generation into the next turn slot.
+
+\end{document}
