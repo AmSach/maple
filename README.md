@@ -1,10 +1,10 @@
 # MAPLE: Manifold-Activated Pruning of Latent Experts
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-[![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Download%204.75GB%20Model-yellow.svg)](https://huggingface.co/AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF)
-[![Direct GGUF Download](https://img.shields.io/badge/Download-4.75%20GB%20GGUF-brightgreen.svg)](https://huggingface.co/AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF/resolve/main/gemma_4_26b_sub5gb_insitu.gguf?download=true)
+[![Hugging Face](https://img.shields.io/badge/Hugging%20Face-AmSach%2Fmaple--4.75GB-yellow.svg)](https://huggingface.co/AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF)
+[![Direct Download](https://img.shields.io/badge/Direct%20Download-4.75%20GB%20GGUF-brightgreen.svg)](https://huggingface.co/AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF/resolve/main/gemma_4_26b_sub5gb_insitu.gguf?download=true)
 [![Format](https://img.shields.io/badge/Format-GGUF-green.svg)](https://github.com/ggerganov/llama.cpp)
-[![Hardware](https://img.shields.io/badge/GPU-RTX%204050%206GB%20(100%25%20VRAM)-orange.svg)]()
+[![Hardware](https://img.shields.io/badge/Target%20Hardware-RTX%204050%206GB%20(100%25%20VRAM)-orange.svg)]()
 
 > **Sub-2-BPW Structural Compression for Mixture-of-Experts (MoE) LLMs**  
 > Compressing **Gemma 4 26B-A4B** from **9.92 GB to 4.75 GB** (1.48 effective bits/param), enabling **100% In-VRAM GPU Execution** on 6 GB laptop GPUs with **45.4 Tokens/Second** throughput.
@@ -14,28 +14,28 @@
 
 ---
 
-## 🎯 Domain Specialization: Optimized Specifically for Coding & Technical Reasoning
+## Domain Specialization: Technical Reasoning and Code Synthesis
 
-> **Model Capabilities & Focus:**  
-> This uploaded 4.75 GB checkpoint is **specifically profiled and pruned for Python programming, algorithm synthesis, data structures, and rigorous technical STEM reasoning**.  
-> By pruning away 80 dormant multilingual and conversational experts, the active 48-expert manifold preserves deep deductive inference and syntax generation while fitting 100% within 6 GB VRAM.
+> **Model Focus:**  
+> This 4.75 GB checkpoint is profiled and pruned specifically for **Python programming, algorithm synthesis, data structures, and formal STEM reasoning**.  
+> By excising 80 dormant multilingual and general conversational experts, the active 48-expert manifold preserves deductive reasoning and syntax generation while fitting entirely within consumer 6 GB VRAM.
 
-### 🛠️ Build Your Own Custom Pruned MoE
-You are **not** restricted to coding! You can easily prune your own custom MoE model for **any specialized domain** (e.g. medicine, finance, legal analysis, creative writing, or other languages) using the open-source MAPLE engine scripts included in this repository:
-1. **Calibrate**: Run `engine/maple_profile.py` with your domain text corpus (e.g. `engine/calibration_corpus.txt` or your own data) to calculate token frequency and channel activation energy via `llama-imatrix`.
-2. **Select**: MAPLE automatically scores experts and generates `engine/expert_selection_map.json`.
-3. **Build**: Run `engine/maple_build.py` to slice the raw model and assemble your customized, zero-overhead sub-2-BPW GGUF container ready for 100% In-VRAM edge execution!
+### Custom Domain MoE Pruning Pipeline
+The MAPLE pruning pipeline is domain-agnostic and can be applied to any specialized field (such as medicine, finance, legal analysis, or creative writing) using the scripts in this repository:
+1. **Calibration**: Run `engine/maple_profile.py` with your custom text corpus (e.g., `engine/calibration_corpus.txt` or a proprietary dataset) to profile routing frequency and activation energy via `llama-imatrix`.
+2. **Selection**: MAPLE scores experts according to the composite energy metric and outputs `engine/expert_selection_map.json`.
+3. **Container Assembly**: Run `engine/maple_build.py` to slice the unpruned base model and assemble an optimized sub-2-BPW GGUF container for 100% in-VRAM edge execution.
 
 ---
 
-## ⚡ Quick Model Download & Instant Execution
+## Model Distribution and Direct Execution
 
-The pre-built, verified 4.75 GB GGUF container is officially hosted on Hugging Face:
+The pre-built, verified 4.75 GB GGUF container is hosted on Hugging Face:
 
-📦 **Hugging Face Model Repository:** [**AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF**](https://huggingface.co/AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF)  
-⬇️ **Direct File Download:** [**`gemma_4_26b_sub5gb_insitu.gguf` (4.75 GB)**](https://huggingface.co/AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF/resolve/main/gemma_4_26b_sub5gb_insitu.gguf?download=true)
+- **Hugging Face Model Repository**: [AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF](https://huggingface.co/AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF)
+- **Direct Binary Download**: [gemma_4_26b_sub5gb_insitu.gguf (4.75 GB)](https://huggingface.co/AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF/resolve/main/gemma_4_26b_sub5gb_insitu.gguf?download=true)
 
-### Run Instantly with `llama.cpp` (Zero Manual Setup):
+### Direct Execution via `llama.cpp`:
 ```bash
 llama-cli \
   -hf AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF \
@@ -48,7 +48,7 @@ llama-cli \
   -r "<turn|>" \
   -p "<|turn>user\nExplain why the sky is blue using Rayleigh scattering.\n<turn|>\n<|turn>model\n"
 ```
-*(llama-cli automatically downloads the 4.75 GB GGUF container directly from Hugging Face and loads all 30 layers into VRAM at 45.4 TPS).*
+*(llama-cli downloads the 4.75 GB GGUF container directly from Hugging Face and allocates all 30 layers into GPU VRAM at 45.4 TPS).*
 
 ---
 
@@ -56,7 +56,7 @@ llama-cli \
 
 While global multilingual pre-training necessitates 128–256 experts to serve hundreds of human languages and encyclopedic domains, localized edge deployments (such as English technical reasoning and code generation) activate only a narrow subset of experts. 
 
-**MAPLE** discovers this latent manifold by profiling live forward-pass expert activations via `llama-imatrix`, scoring experts via a composite frequency-energy metric:
+MAPLE discovers this latent manifold by profiling live forward-pass expert activations via `llama-imatrix`, scoring experts via a composite frequency-energy metric:
 
 $$s_{e,l} = C_{e,l} \cdot \sqrt{\bar{\sigma}_{e,l} + \epsilon}$$
 
@@ -105,13 +105,13 @@ maple/
 ├── README.md                           # Documentation & benchmarks
 ├── LICENSE                             # Apache 2.0 License
 ├── requirements.txt                    # Python dependencies
-├── run_maple.bat                       # One-click Windows interactive launcher
+├── run_maple.bat                       # Interactive Windows launcher
 ├── upload_to_hf.py                     # Hugging Face Hub upload utility
 └── engine/
     ├── maple_profile.py                # Scores & extracts top-48 experts from imatrix
     ├── maple_build.py                  # Slices & builds 4.75 GB GGUF container
     ├── benchmark.py                    # Automated 4-domain semantic fidelity suite
-    ├── chat.py                         # Real-time streaming console with live telemetry
+    ├── chat.py                         # Streaming console with live telemetry
     ├── calibration_corpus.txt          # Multi-domain calibration corpus (1,979 tokens)
     └── expert_selection_map.json       # Extracted 30-layer empirical expert indices
 ```
@@ -140,8 +140,8 @@ python engine/chat.py
 ## Model Download Links (Hugging Face Hub)
 
 The compressed 4.75 GB GGUF model container is publicly hosted on Hugging Face:
-- **Hugging Face Hub Repository**: [https://huggingface.co/AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF](https://huggingface.co/AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF)
-- **Direct Download (4.75 GB Binary)**: [gemma_4_26b_sub5gb_insitu.gguf](https://huggingface.co/AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF/resolve/main/gemma_4_26b_sub5gb_insitu.gguf?download=true)
+- **Repository**: [https://huggingface.co/AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF](https://huggingface.co/AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF)
+- **Direct Binary (4.75 GB)**: [gemma_4_26b_sub5gb_insitu.gguf](https://huggingface.co/AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF/resolve/main/gemma_4_26b_sub5gb_insitu.gguf?download=true)
 
 ---
 
