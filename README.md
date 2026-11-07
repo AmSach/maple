@@ -2,7 +2,7 @@
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Hugging Face](https://img.shields.io/badge/Hugging%20Face-AmSach%2Fmaple--4.75GB-yellow.svg)](https://huggingface.co/AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF)
-[![Direct Download](https://img.shields.io/badge/Direct%20Download-4.75%20GB%20GGUF-brightgreen.svg)](https://huggingface.co/AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF/resolve/main/gemma_4_26b_sub5gb_insitu.gguf?download=true)
+[![Direct Download](https://img.shields.io/badge/Direct%20Download-4.75%20GB%20GGUF-brightgreen.svg)](https://huggingface.co/AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF/resolve/main/gemma-4-26B-A4B-MAPLE-IQ2_XXS.gguf?download=true)
 [![Format](https://img.shields.io/badge/Format-GGUF-green.svg)](https://github.com/ggerganov/llama.cpp)
 [![Hardware](https://img.shields.io/badge/Target%20Hardware-RTX%204050%206GB%20(100%25%20VRAM)-orange.svg)]()
 
@@ -33,7 +33,7 @@ The MAPLE pruning pipeline is domain-agnostic and can be applied to any speciali
 The pre-built, verified 4.75 GB GGUF container is hosted on Hugging Face:
 
 - **Hugging Face Model Repository**: [AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF](https://huggingface.co/AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF)
-- **Direct Binary Download**: [gemma_4_26b_sub5gb_insitu.gguf (4.75 GB)](https://huggingface.co/AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF/resolve/main/gemma_4_26b_sub5gb_insitu.gguf?download=true)
+- **Direct Binary Download**: [gemma-4-26B-A4B-MAPLE-IQ2_XXS.gguf (4.75 GB)](https://huggingface.co/AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF/resolve/main/gemma-4-26B-A4B-MAPLE-IQ2_XXS.gguf?download=true)
 
 ### Direct Execution via `llama.cpp`:
 ```bash
@@ -72,11 +72,11 @@ Applied to Gemma 4 26B-A4B (128 routed experts, 30 layers), MAPLE excises 80 dor
 
 ## Performance Benchmark (RTX 4050 6GB Laptop GPU)
 
-| Configuration | Model Size | VRAM Allocation | Offloaded Layers | Generation Speed | Latency |
-|---|---|---|---|---|---|
-| **Original 128-Expert Base** | 9.92 GB | 6,141 MiB (paged) | 16 / 30 | 6.9 Tokens/Sec | 144.9 ms / token |
-| **MAPLE 48-Expert Container** | **4.75 GB** | **4,180 MiB (100% VRAM)** | **30 / 30** | **45.4 Tokens/Sec** | **22.0 ms / token** |
-| **Improvement** | **2.09x smaller** | **-32% VRAM** | **100% In-VRAM** | **6.57x speedup** | **6.58x faster** |
+| Configuration | Model Size | Physical Parameters | VRAM Allocation | Offloaded Layers | Generation Speed | Latency |
+|---|---|---|---|---|---|---|
+| **Original 128-Expert Base** | 9.92 GB | 25.6B params | 6,141 MiB (paged) | 16 / 30 | 6.9 Tokens/Sec | 144.9 ms / token |
+| **MAPLE 48-Expert Container** | **4.75 GB** | **11.0B params** | **4,180 MiB (100% VRAM)** | **30 / 30** | **45.4 Tokens/Sec** | **22.0 ms / token** |
+| **Improvement** | **2.09x smaller** | **-57% parameters** | **-32% VRAM** | **100% In-VRAM** | **6.57x speedup** | **6.58x faster** |
 
 ### Task-Level Semantic Fidelity Benchmark
 
@@ -141,7 +141,7 @@ python engine/chat.py
 
 The compressed 4.75 GB GGUF model container is publicly hosted on Hugging Face:
 - **Repository**: [https://huggingface.co/AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF](https://huggingface.co/AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF)
-- **Direct Binary (4.75 GB)**: [gemma_4_26b_sub5gb_insitu.gguf](https://huggingface.co/AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF/resolve/main/gemma_4_26b_sub5gb_insitu.gguf?download=true)
+- **Direct Binary (4.75 GB)**: [gemma-4-26B-A4B-MAPLE-IQ2_XXS.gguf](https://huggingface.co/AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF/resolve/main/gemma-4-26B-A4B-MAPLE-IQ2_XXS.gguf?download=true)
 
 ---
 
