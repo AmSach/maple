@@ -1,6 +1,7 @@
 # MAPLE: Manifold-Activated Pruning of Latent Experts
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Model%20Download-yellow.svg)](https://huggingface.co/AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF)
 [![Format](https://img.shields.io/badge/Model-GGUF-green.svg)](https://github.com/ggerganov/llama.cpp)
 [![Hardware](https://img.shields.io/badge/GPU-RTX%204050%206GB-orange.svg)]()
 [![Paper](https://img.shields.io/badge/Status-In%20Peer%20Review-yellow.svg)]()
