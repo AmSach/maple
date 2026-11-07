@@ -127,7 +127,7 @@ This paper makes the following contributions:
   \item We define the \MAPLE{} expert scoring function $s_e = c_e \cdot \sqrt{\bar{\sigma}_e}$, where $c_e$ is the empirical call count and $\bar{\sigma}_e$ is the mean input L2 energy of expert $e$, and show it outperforms count-only or energy-only selection (\S\ref{sec:method}).
   \item We document three distinct failure modes that invalidate naive compression approaches and explain precisely why each fails (\S\ref{sec:failures}).
   \item We demonstrate 93.8\% task fidelity retention, 2.09$\times$ compression, 1.48 effective~BPW, and 6.57$\times$ throughput improvement on a commodity laptop GPU for a 26-billion-parameter MoE model (\S\ref{sec:experiments}).
-  \item We release all code, calibration data, and expert selection maps at the project repository.
+  \item We release all code, calibration data, and expert selection maps openly at \url{https://github.com/amansachan/maple}.
 \end{enumerate}
 
 The paper is organized as follows. Section~\ref{sec:background} reviews MoE architectures and existing compression approaches. Section~\ref{sec:insight} characterizes the expert sparsity structure we exploit. Section~\ref{sec:method} describes \MAPLE{} in full algorithmic detail. Section~\ref{sec:failures} documents the three failure modes. Section~\ref{sec:experiments} presents quantitative evaluation. Section~\ref{sec:limitations} discusses limitations honestly. Section~\ref{sec:generality} addresses generalizability. Section~\ref{sec:related} situates our work in context. Section~\ref{sec:conclusion} concludes.

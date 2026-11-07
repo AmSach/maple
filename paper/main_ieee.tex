@@ -73,7 +73,7 @@ Fine-grained MoE models provide an orthogonal, unexplored dimension for compress
 
 In this paper, we introduce \textbf{\MAPLE{}} (\textbf{M}anifold-\textbf{A}ctivated \textbf{P}runing of \textbf{L}atent \textbf{E}xperts), an empirical forward-pass profiling and structural pruning framework designed specifically for fine-grained MoE architectures in the GGUF ecosystem~\cite{llama_cpp}. \MAPLE{} captures the empirical activation manifold of the target domain, computes a joint frequency-energy saliency score for every expert across all layers, and directly excises dormant experts from quantized GGUF binaries without requiring retraining, gradient access, or dequantization.
 
-Applied to Gemma~4~26B-A4B, \MAPLE{} compresses the model from 9.92~GB to 4.75~GB—achieving an effective density of **1.48 bits per parameter** (a 2.09$\times$ reduction over an already 2-bit quantized base). Crucially, the 4.75~GB model fits entirely within the 6141~MiB VRAM budget of an RTX 4050 Laptop GPU, accelerating generation by **6.57$\times$ (from 6.9 to 45.4 TPS)** while retaining **93.8\% semantic task fidelity**.
+Applied to Gemma~4~26B-A4B, \MAPLE{} compresses the model from 9.92~GB to 4.75~GB---achieving an effective density of \textbf{1.48 bits per parameter} (a 2.09$\times$ reduction over an already 2-bit quantized base). Crucially, the 4.75~GB model fits entirely within the 6141~MiB VRAM budget of an RTX 4050 Laptop GPU, accelerating generation by \textbf{6.57$\times$ (from 6.9 to 45.4 TPS)} while retaining \textbf{93.8\% semantic task fidelity}. Code, calibration datasets, and expert selection maps are openly available at \url{https://github.com/amansachan/maple}.
 
 \section{The MAPLE Framework}
 

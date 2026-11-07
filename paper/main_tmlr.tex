@@ -83,7 +83,7 @@ This paper makes the following contributions:
   \item We define the \MAPLE{} expert scoring function $s_e = c_e \cdot \sqrt{\bar{\sigma}_e}$, where $c_e$ is the empirical call count and $\bar{\sigma}_e$ is the mean input L2 energy of expert $e$, and show it outperforms count-only or energy-only selection (\S\ref{sec:method}).
   \item We document three distinct failure modes that invalidate naive compression approaches and explain precisely why each fails (\S\ref{sec:failures}).
   \item We demonstrate 93.8\% task fidelity retention, 2.09$\times$ compression, 1.48 effective~BPW, and 6.57$\times$ throughput improvement on a commodity laptop GPU for a 26-billion-parameter MoE model (\S\ref{sec:experiments}).
-  \item We release all code, calibration data, and expert selection maps openly in reproducible repositories.
+  \item We release all code, calibration data, and expert selection maps openly in reproducible repositories.\footnote{Code, calibration datasets, and expert selection maps will be released on GitHub upon acceptance; replication artifacts are provided in supplementary material.}
 \end{enumerate}
 
 \section{Background}
