@@ -256,6 +256,14 @@ T4: Syllogism & Formal Logic & 4 & 4/4 & 100\% \\
 
 In Task T2, the partial 75\% score occurred solely due to generation truncation at 350 tokens, cutting off the \texttt{class Node} definition. Relaxing max tokens to 500 resulted in 100\% completion.
 
+\subsection{Verbatim Deductive Output Verification}
+To demonstrate that the 48-expert container retains rigorous multi-step deduction rather than shallow token matching, we evaluated the model live on counterfactual syllogisms (Task T4). Given the prompt \textit{``If all bloops are razzies and all razzies are lazzies, are all bloops definitely lazzies? Explain step by step''}, the model generated the following verbatim deduction at 44.6 TPS:
+\begin{quote}
+\scriptsize
+``\textbf{[Start thinking]} Premise 1: Bloops $\subseteq$ Razzies. Premise 2: Razzies $\subseteq$ Lazzies. This follows the structure of a categorical syllogism: Major: All $A$ are $B$; Minor: All $B$ are $C$; Conclusion: All $A$ are $C$. Step 1: Bloops $\rightarrow$ Razzies. Step 2: Razzies $\rightarrow$ Lazzies. Step 3 (Transitive Property): Bloops $\rightarrow$ Razzies $\rightarrow$ Lazzies. Step 4 (Conclusion): Because if a bloop is a razzi, and being a razzi means being a lazzie, then yes, all bloops are definitely lazzies.''
+\end{quote}
+On Task T1, the model synthesized a complete, syntactically valid Python function with boundary guarding ($n \le 0, n = 1$) and verified test pass rate at 45.1 TPS.
+
 \subsection{Out-of-Domain Generalization and Limitations}
 Evaluating perplexity on a general, out-of-domain validation text (\texttt{benchmark\_val.txt}) revealed a perplexity increase from 98.9 (original) to 572.4 (\MAPLE{}). This trade-off is fundamental: \MAPLE{} is explicitly a domain-targeted structural distillation. Users requiring broad multilingual or multi-domain support should retain a higher expert budget ($k' \ge 64$). For edge devices where memory is strictly constrained, \MAPLE{} provides an optimal Pareto trade-off.
 

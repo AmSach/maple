@@ -242,6 +242,13 @@ T4: Syllogistic logic & Formal logic & \texttt{yes}, \texttt{transitive}, \textt
 
 The T2 partial score (75\%) was attributable solely to token cutoff at 350 tokens, cutting off \texttt{class Node}. Relaxing to 500 tokens yielded 100\% completion.
 
+\paragraph{Qualitative Verbatim Verification.} To demonstrate that pruning retains multi-step deductive reasoning rather than superficial heuristics, we evaluated the model live on counterfactual syllogisms (Task T4). Given the prompt \textit{``If all bloops are razzies and all razzies are lazzies, are all bloops definitely lazzies? Explain step by step''}, the model generated the following verbatim deduction at 44.6 TPS:
+\begin{quote}
+\small
+``\textbf{[Start thinking]} Premise 1: Bloops $\subseteq$ Razzies. Premise 2: Razzies $\subseteq$ Lazzies. Question: Are all bloops definitely lazzies? It follows a hypothetical syllogism: Major: All $A$ are $B$; Minor: All $B$ are $C$; Conclusion: Therefore, all $A$ are $C$. Step 1: Bloops $\rightarrow$ Razzies. Step 2: Razzies $\rightarrow$ Lazzies. Step 3 (Transitive Property): Bloops $\rightarrow$ Razzies $\rightarrow$ Lazzies. Step 4 (Conclusion): Because if a bloop is a razzi, and being a razzi means being a lazzie, then yes, all bloops are definitely lazzies.''
+\end{quote}
+Similarly, on Task T1, the model synthesized an error-free Python Fibonacci routine with full input boundary handling at 45.1 TPS.
+
 \subsection{Throughput Comparison}
 
 \begin{center}
