@@ -150,7 +150,7 @@ The compressed 4.75 GB GGUF model container is publicly hosted on Hugging Face:
 
 ```bibtex
 @article{sachan2026maple,
-  title={MAPLE: Manifold-Activated Pruning of Latent Experts for Sub-2-BPW Mixture-of-Experts Language Models},
+  title={MAPLE: Manifold-Activated Pruning of Latent Experts},
   author={Sachan, Aman},
   journal={Zenodo},
   year={2026},
