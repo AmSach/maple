@@ -18,7 +18,12 @@ if sys.platform == "win32":
     except Exception:
         pass
 
-MODEL_PATH    = r"D:\models\gemma_4_26b\gemma_4_26b_sub5gb_insitu.gguf"
+CANDIDATE_MODEL_PATHS = [
+    os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "models", "gemma-4-26B-A4B-MAPLE-IQ2_XXS.gguf"),
+    r"D:\models\gemma_4_26b\gemma_4_26b_sub5gb_insitu.gguf",
+    r"D:\models\gemma_4_26b\gemma-4-26B-A4B-MAPLE-IQ2_XXS.gguf",
+]
+MODEL_PATH = next((p for p in CANDIDATE_MODEL_PATHS if os.path.exists(p)), CANDIDATE_MODEL_PATHS[0])
 LLAMA_CLI     = r"D:\tools\llama-cpp\llama-cli.exe"
 OLLAMA_LIB    = r"C:\Users\amans\AppData\Local\Programs\Ollama\lib\ollama"
 LLAMA_CPP_DIR = r"D:\tools\llama-cpp"
