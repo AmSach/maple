@@ -4,13 +4,27 @@
 [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Download%204.75GB%20Model-yellow.svg)](https://huggingface.co/AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF)
 [![Direct GGUF Download](https://img.shields.io/badge/Download-4.75%20GB%20GGUF-brightgreen.svg)](https://huggingface.co/AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF/resolve/main/gemma_4_26b_sub5gb_insitu.gguf?download=true)
 [![Format](https://img.shields.io/badge/Format-GGUF-green.svg)](https://github.com/ggerganov/llama.cpp)
-[![Hardware](https://img.shields.io/badge/GPU-RTX%204050%206GB-orange.svg)]()
+[![Hardware](https://img.shields.io/badge/GPU-RTX%204050%206GB%20(100%25%20VRAM)-orange.svg)]()
 
 > **Sub-2-BPW Structural Compression for Mixture-of-Experts (MoE) LLMs**  
 > Compressing **Gemma 4 26B-A4B** from **9.92 GB to 4.75 GB** (1.48 effective bits/param), enabling **100% In-VRAM GPU Execution** on 6 GB laptop GPUs with **45.4 Tokens/Second** throughput.
 
 **Author**: Aman Sachan ([amansachan92905@gmail.com](mailto:amansachan92905@gmail.com))  
 **Organization**: Independent Systems Research  
+
+---
+
+## 🎯 Domain Specialization: Optimized Specifically for Coding & Technical Reasoning
+
+> **Model Capabilities & Focus:**  
+> This uploaded 4.75 GB checkpoint is **specifically profiled and pruned for Python programming, algorithm synthesis, data structures, and rigorous technical STEM reasoning**.  
+> By pruning away 80 dormant multilingual and conversational experts, the active 48-expert manifold preserves deep deductive inference and syntax generation while fitting 100% within 6 GB VRAM.
+
+### 🛠️ Build Your Own Custom Pruned MoE
+You are **not** restricted to coding! You can easily prune your own custom MoE model for **any specialized domain** (e.g. medicine, finance, legal analysis, creative writing, or other languages) using the open-source MAPLE engine scripts included in this repository:
+1. **Calibrate**: Run `engine/maple_profile.py` with your domain text corpus (e.g. `engine/calibration_corpus.txt` or your own data) to calculate token frequency and channel activation energy via `llama-imatrix`.
+2. **Select**: MAPLE automatically scores experts and generates `engine/expert_selection_map.json`.
+3. **Build**: Run `engine/maple_build.py` to slice the raw model and assemble your customized, zero-overhead sub-2-BPW GGUF container ready for 100% In-VRAM edge execution!
 
 ---
 
@@ -45,6 +59,12 @@ While global multilingual pre-training necessitates 128–256 experts to serve h
 **MAPLE** discovers this latent manifold by profiling live forward-pass expert activations via `llama-imatrix`, scoring experts via a composite frequency-energy metric:
 
 $$s_{e,l} = C_{e,l} \cdot \sqrt{\bar{\sigma}_{e,l} + \epsilon}$$
+
+where:
+- **`s_{e,l}`**: Composite importance score for expert `e` in layer `l`
+- **`C_{e,l}`**: Empirical token activation frequency (routing count)
+- **`σ̄_{e,l}`**: Mean input channel activation energy
+- **`ε`**: Numerical stability floor (10⁻⁶)
 
 Applied to Gemma 4 26B-A4B (128 routed experts, 30 layers), MAPLE excises 80 dormant experts per layer to assemble an optimized 48-expert GGUF container capturing **79.88% of active forward-pass activation mass**.
 
