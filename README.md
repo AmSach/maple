@@ -1,6 +1,7 @@
 # MAPLE: Manifold-Activated Pruning of Latent Experts
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24042480.svg)](https://doi.org/10.5281/zenodo.24042480)
 [![Hugging Face](https://img.shields.io/badge/Hugging%20Face-AmSach%2Fmaple--4.75GB-yellow.svg)](https://huggingface.co/AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF)
 [![Direct Download](https://img.shields.io/badge/Direct%20Download-4.75%20GB%20GGUF-brightgreen.svg)](https://huggingface.co/AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF/resolve/main/gemma-4-26B-A4B-MAPLE-IQ2_XXS.gguf?download=true)
 [![Format](https://img.shields.io/badge/Format-GGUF-green.svg)](https://github.com/ggerganov/llama.cpp)
@@ -151,6 +152,9 @@ The compressed 4.75 GB GGUF model container is publicly hosted on Hugging Face:
 @article{sachan2026maple,
   title={MAPLE: Manifold-Activated Pruning of Latent Experts for Sub-2-BPW Mixture-of-Experts Language Models},
   author={Sachan, Aman},
-  year={2026}
+  journal={Zenodo},
+  year={2026},
+  doi={10.5281/zenodo.24042480},
+  url={https://doi.org/10.5281/zenodo.24042480}
 }
 ```
