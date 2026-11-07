@@ -1,11 +1,7 @@
 """
-Stage 2: Assemble 48-Expert Empirically Profiled Gemma 4 GGUF Container
+MAPLE: Model Container Assembler
+Builds the pruned 48-expert sub-5GB GGUF container with 100% in-VRAM execution.
 Target: D:\models\gemma_4_26b\gemma_4_26b_sub5gb_insitu.gguf
-Guarantees:
-  - Exact file size: ~4.73 GB (Sub-5GB | 100% In-VRAM)
-  - 48 empirical experts capturing ~80% of active inference mass
-  - Original scale preserved (no artificial norm suppression)
-  - Memory-safe streaming write via GGUFWriter(use_temp_file=True)
 """
 
 import json
@@ -15,9 +11,12 @@ import time
 import numpy as np
 import gguf
 
+BASE_DIR    = os.path.dirname(os.path.abspath(__file__))
 SOURCE_GGUF = r"D:\models\gemma_4_26b\gemma-4-26B-A4B-it-UD-IQ2_XXS.gguf"
 TARGET_GGUF = r"D:\models\gemma_4_26b\gemma_4_26b_sub5gb_insitu.gguf"
-JSON_PATH   = r"C:\Users\amans\.gemini\antigravity\scratch\repos\middleout-lattice\engine\layer_experts_empirical_48.json"
+JSON_PATH   = os.path.join(BASE_DIR, "expert_selection_map.json")
+if not os.path.exists(JSON_PATH):
+    JSON_PATH = r"C:\Users\amans\.gemini\antigravity\scratch\repos\middleout-lattice\engine\layer_experts_empirical_48.json"
 N_EXPERTS   = 48
 N_EXPERT_USED = 8
 

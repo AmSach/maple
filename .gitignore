@@ -15,6 +15,10 @@ ENV/
 *.safetensors
 *.tmp
 
+# Academic Papers (Keep local for double-blind submission)
+paper/
+submissions/
+
 # LaTeX Compilation Artifacts
 *.aux
 *.log

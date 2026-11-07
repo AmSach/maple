@@ -1,14 +1,19 @@
 """
-Extract Empirical Expert Rankings from comprehensive_imatrix.gguf
-Produces layer_experts_empirical_48.json using actual forward pass activations.
+MAPLE: Empirical Expert Profiler
+Analyzes forward-pass imatrix statistics and extracts optimal expert indices.
+Outputs: expert_selection_map.json
 """
 
+import os
 import json
 import numpy as np
 import gguf
 
-IMATRIX_PATH = r"C:\Users\amans\.gemini\antigravity\scratch\repos\middleout-lattice\engine\comprehensive_imatrix.gguf"
-OUTPUT_JSON  = r"C:\Users\amans\.gemini\antigravity\scratch\repos\middleout-lattice\engine\layer_experts_empirical_48.json"
+BASE_DIR     = os.path.dirname(os.path.abspath(__file__))
+IMATRIX_PATH = os.path.join(BASE_DIR, "comprehensive_imatrix.gguf")
+if not os.path.exists(IMATRIX_PATH):
+    IMATRIX_PATH = r"C:\Users\amans\.gemini\antigravity\scratch\repos\middleout-lattice\engine\comprehensive_imatrix.gguf"
+OUTPUT_JSON  = os.path.join(BASE_DIR, "expert_selection_map.json")
 N_EXPERTS    = 48
 
 def extract():

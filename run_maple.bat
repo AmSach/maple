@@ -17,7 +17,7 @@ if not exist "%PY_BIN%" (
 )
 
 cd /d "%~dp0engine"
-"%PY_BIN%" "interactive_cli.py"
+"%PY_BIN%" "chat.py"
 
 if %ERRORLEVEL% neq 0 (
     echo.

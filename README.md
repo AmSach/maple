@@ -1,9 +1,9 @@
 # MAPLE: Manifold-Activated Pruning of Latent Experts
 
-[![Paper](https://img.shields.io/badge/Paper-PDF-red.svg)](paper/main.pdf)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Format](https://img.shields.io/badge/Model-GGUF-green.svg)](https://github.com/ggerganov/llama.cpp)
 [![Hardware](https://img.shields.io/badge/GPU-RTX%204050%206GB-orange.svg)]()
+[![Paper](https://img.shields.io/badge/Status-In%20Peer%20Review-yellow.svg)]()
 
 > **Sub-2-BPW Structural Compression for Mixture-of-Experts (MoE) LLMs**  
 > Compressing **Gemma 4 26B-A4B** from **9.92 GB to 4.75 GB** (1.48 effective bits/param), enabling **100% In-VRAM GPU Execution** on 6 GB laptop GPUs with **45.4 Tokens/Second** throughput.
@@ -13,9 +13,9 @@
 
 ---
 
-## Abstract
+## Overview
 
-While global multilingual pre-training necessitates 128–256 experts to serve diverse languages and domains, localized edge deployments (e.g. English technical reasoning and code generation) activate only a narrow subset of experts. 
+While global multilingual pre-training necessitates 128–256 experts to serve hundreds of human languages and encyclopedic domains, localized edge deployments (such as English technical reasoning and code generation) activate only a narrow subset of experts. 
 
 **MAPLE** discovers this latent manifold by profiling live forward-pass expert activations via `llama-imatrix`, scoring experts via a composite frequency-energy metric:
 
@@ -57,26 +57,18 @@ Applied to Gemma 4 26B-A4B (128 routed experts, 30 layers), MAPLE excises 80 dor
 
 ```
 maple/
-├── README.md                           # Comprehensive documentation
+├── README.md                           # Documentation & benchmarks
 ├── LICENSE                             # Apache 2.0 License
 ├── requirements.txt                    # Python dependencies
 ├── run_maple.bat                       # One-click Windows interactive launcher
 ├── upload_to_hf.py                     # Hugging Face Hub upload utility
-├── engine/
-│   ├── extract_empirical_experts.py    # Scores & extracts top-48 experts from imatrix
-│   ├── stage2_build_48exp_empirical.py # Slices & builds 4.75 GB GGUF container
-│   ├── run_quality_benchmark.py        # Automated 4-domain semantic fidelity suite
-│   ├── interactive_cli.py              # Real-time streaming console with live telemetry
-│   ├── comprehensive_calibration.txt   # Multi-domain calibration corpus (1,979 tokens)
-│   └── layer_experts_empirical_48.json # Extracted 30-layer empirical expert indices
-└── paper/
-    ├── main.pdf                        # 13-page comprehensive reference paper
-    ├── main.tex                        # LaTeX source
-    ├── main_ieee.pdf                   # 4-page IEEE AccML 2027 edition
-    ├── main_ieee.tex                   # IEEEtran LaTeX source
-    ├── main_tmlr.pdf                   # 7-page TMLR double-blind edition
-    ├── main_tmlr.tex                   # TMLR LaTeX source
-    └── tmlr.sty                        # Official TMLR style file
+└── engine/
+    ├── maple_profile.py                # Scores & extracts top-48 experts from imatrix
+    ├── maple_build.py                  # Slices & builds 4.75 GB GGUF container
+    ├── benchmark.py                    # Automated 4-domain semantic fidelity suite
+    ├── chat.py                         # Real-time streaming console with live telemetry
+    ├── calibration_corpus.txt          # Multi-domain calibration corpus (1,979 tokens)
+    └── expert_selection_map.json       # Extracted 30-layer empirical expert indices
 ```
 
 ---
@@ -95,7 +87,7 @@ run_maple.bat
 ```
 Or with Python:
 ```bash
-python engine/interactive_cli.py
+python engine/chat.py
 ```
 
 ### 3. Direct llama.cpp CLI Execution
@@ -130,7 +122,6 @@ python upload_to_hf.py
 @article{sachan2026maple,
   title={MAPLE: Manifold-Activated Pruning of Latent Experts for Sub-2-BPW Mixture-of-Experts Language Models},
   author={Sachan, Aman},
-  journal={arXiv preprint},
   year={2026}
 }
 ```
