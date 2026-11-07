@@ -1,16 +1,40 @@
 # MAPLE: Manifold-Activated Pruning of Latent Experts
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-[![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Model%20Download-yellow.svg)](https://huggingface.co/AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF)
-[![Format](https://img.shields.io/badge/Model-GGUF-green.svg)](https://github.com/ggerganov/llama.cpp)
+[![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Download%204.75GB%20Model-yellow.svg)](https://huggingface.co/AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF)
+[![Direct GGUF Download](https://img.shields.io/badge/Download-4.75%20GB%20GGUF-brightgreen.svg)](https://huggingface.co/AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF/resolve/main/gemma_4_26b_sub5gb_insitu.gguf?download=true)
+[![Format](https://img.shields.io/badge/Format-GGUF-green.svg)](https://github.com/ggerganov/llama.cpp)
 [![Hardware](https://img.shields.io/badge/GPU-RTX%204050%206GB-orange.svg)]()
-[![Paper](https://img.shields.io/badge/Status-In%20Peer%20Review-yellow.svg)]()
 
 > **Sub-2-BPW Structural Compression for Mixture-of-Experts (MoE) LLMs**  
 > Compressing **Gemma 4 26B-A4B** from **9.92 GB to 4.75 GB** (1.48 effective bits/param), enabling **100% In-VRAM GPU Execution** on 6 GB laptop GPUs with **45.4 Tokens/Second** throughput.
 
 **Author**: Aman Sachan ([amansachan92905@gmail.com](mailto:amansachan92905@gmail.com))  
 **Organization**: Independent Systems Research  
+
+---
+
+## ⚡ Quick Model Download & Instant Execution
+
+The pre-built, verified 4.75 GB GGUF container is officially hosted on Hugging Face:
+
+📦 **Hugging Face Model Repository:** [**AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF**](https://huggingface.co/AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF)  
+⬇️ **Direct File Download:** [**`gemma_4_26b_sub5gb_insitu.gguf` (4.75 GB)**](https://huggingface.co/AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF/resolve/main/gemma_4_26b_sub5gb_insitu.gguf?download=true)
+
+### Run Instantly with `llama.cpp` (Zero Manual Setup):
+```bash
+llama-cli \
+  -hf AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF \
+  -ngl 99 \
+  -c 2048 \
+  -n 512 \
+  --temp 0.4 \
+  --top-p 0.9 \
+  --repeat-penalty 1.1 \
+  -r "<turn|>" \
+  -p "<|turn>user\nExplain why the sky is blue using Rayleigh scattering.\n<turn|>\n<|turn>model\n"
+```
+*(llama-cli automatically downloads the 4.75 GB GGUF container directly from Hugging Face and loads all 30 layers into VRAM at 45.4 TPS).*
 
 ---
 
@@ -74,46 +98,30 @@ maple/
 
 ---
 
-## Quickstart
+## Local Setup & Interactive Console
 
 ### 1. Requirements
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. Run the Interactive Console
+### 2. Run the Interactive Chat Console
 On Windows:
 ```cmd
 run_maple.bat
 ```
-Or with Python:
+Or via Python:
 ```bash
 python engine/chat.py
 ```
 
-### 3. Direct llama.cpp CLI Execution
-```bash
-llama-cli \
-  -m gemma_4_26b_sub5gb_insitu.gguf \
-  -ngl 99 \
-  -c 2048 \
-  -n 512 \
-  --temp 0.4 \
-  --top-p 0.9 \
-  --repeat-penalty 1.1 \
-  -r "<turn|>" \
-  -p "<|turn>user\nExplain why the sky is blue using Rayleigh scattering.\n<turn|>\n<|turn>model\n"
-```
-
 ---
 
-## Upload to Hugging Face Hub
+## Model Download Links (Hugging Face Hub)
 
-To publish the 4.75 GB GGUF container on your Hugging Face account:
-
-```bash
-python upload_to_hf.py
-```
+The compressed 4.75 GB GGUF model container is publicly hosted on Hugging Face:
+- **Hugging Face Hub Repository**: [https://huggingface.co/AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF](https://huggingface.co/AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF)
+- **Direct Download (4.75 GB Binary)**: [gemma_4_26b_sub5gb_insitu.gguf](https://huggingface.co/AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF/resolve/main/gemma_4_26b_sub5gb_insitu.gguf?download=true)
 
 ---
 
