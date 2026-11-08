@@ -74,11 +74,11 @@ Applied to Gemma 4 26B-A4B (128 routed experts, 30 layers), MAPLE excises 80 dor
 
 ## Performance Benchmark (RTX 4050 6GB Laptop GPU)
 
-| Configuration | Model Size | Physical Parameters | VRAM Allocation | Offloaded Layers | Generation Speed | Latency |
-|---|---|---|---|---|---|---|
-| **Original 128-Expert Base** | 9.92 GB | 25.6B params | 6,141 MiB (paged) | 16 / 30 | 6.9 Tokens/Sec | 144.9 ms / token |
-| **MAPLE 48-Expert Container** | **4.75 GB** | **11.0B params** | **4,180 MiB (100% VRAM)** | **30 / 30** | **45.4 Tokens/Sec** | **22.0 ms / token** |
-| **Improvement** | **2.09x smaller** | **-57% parameters** | **-32% VRAM** | **100% In-VRAM** | **6.57x speedup** | **6.58x faster** |
+| Configuration | Model Size | VRAM Allocation | Offloaded Layers | Generation Speed | Latency |
+|---|---|---|---|---|---|
+| **Original 128-Expert Base (Gemma 4 26B-A4B)** | 9.92 GB | 6,141 MiB (paged) | 16 / 30 | 6.9 Tokens/Sec | 144.9 ms / token |
+| **MAPLE 48-Expert Container (Gemma 4 26B-A4B)** | **4.75 GB** | **4,180 MiB (100% VRAM)** | **30 / 30** | **45.4 Tokens/Sec** | **22.0 ms / token** |
+| **Improvement** | **2.09x smaller** | **-32% VRAM** | **100% In-VRAM** | **6.57x speedup** | **6.58x faster** |
 
 ### Task-Level Semantic Fidelity Benchmark
 
