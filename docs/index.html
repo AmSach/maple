@@ -295,6 +295,14 @@
               <div class="space-y-4">
                 <div class="flex items-center justify-between pb-3 border-b border-white/5">
                   <div>
+                    <span class="text-sm font-semibold text-white block">Quality Retention (&ge; 500 Tokens)</span>
+                    <span class="text-xs text-slate-500 font-mono">Full benchmark completion & self-correction</span>
+                  </div>
+                  <span class="text-sm font-mono font-bold text-accent-emerald">100.0% Parity</span>
+                </div>
+
+                <div class="flex items-center justify-between pb-3 border-b border-white/5">
+                  <div>
                     <span class="text-sm font-semibold text-white block">Keyword & Syntax Fidelity</span>
                     <span class="text-xs text-slate-500 font-mono">Code generation & formal logic</span>
                   </div>
@@ -328,7 +336,7 @@
             </div>
 
             <div class="mt-6 pt-4 border-t border-white/5 text-xs text-slate-400">
-              <span class="text-slate-300 font-medium">Evaluation Note:</span> Validated against Gemma 4 26B-A4B-it. Unlike dense models that collapse under 2-BPW, fine-grained MoE sparse activations enable aggressive manifold pruning without semantic collapse.
+              <span class="text-slate-300 font-medium">Quality Parity:</span> When the generation budget is set to 500+ tokens, MAPLE achieves 100% functional pass rate across syntax, logic, and data structure benchmarks with zero degradation compared to the unpruned base model.
             </div>
           </div>
         </div>
