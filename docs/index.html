@@ -185,6 +185,11 @@
           <i data-lucide="message-square" class="w-4 h-4 text-brand-400"></i>
           <span>llama.cpp Showcase #31894</span>
         </a>
+
+        <a href="https://doi.org/10.34740/KAGGLE/M/786779" target="_blank" rel="noopener" class="px-5 py-3.5 rounded-full bg-[#20BEFF]/10 hover:bg-[#20BEFF]/20 border border-[#20BEFF]/30 text-[#20BEFF] font-medium text-sm transition-all flex items-center gap-2">
+          <i data-lucide="database" class="w-4 h-4 text-[#20BEFF]"></i>
+          <span>Kaggle DOI 10.34740/KAGGLE/M/786779</span>
+        </a>
       </div>
 
       <!-- Quick Specs Metric Grid -->
@@ -341,6 +346,24 @@
           </div>
         </div>
       </div>
+      <!-- Domain-Targeted Pareto Distillation Card -->
+      <div class="mt-8 outer-bezel">
+        <div class="inner-core p-8 border-l-4 border-brand-500">
+          <div class="flex items-center gap-3 mb-4">
+            <span class="px-3 py-1 rounded-full text-xs font-mono font-semibold bg-brand-500/10 text-brand-400 border border-brand-500/20">Architectural Framing</span>
+            <span class="text-xs font-mono text-slate-400 uppercase tracking-wider">Domain-Targeted Pareto Distillation</span>
+          </div>
+          <p class="text-slate-300 text-sm leading-relaxed mb-3">
+            We did not attempt lossy random pruning across the entire internet. Gemma 4 26B uses 128 fine-grained experts where massive clusters specialize in non-English languages, translation, and non-technical trivia. For edge code generation and technical deduction, those experts are dormant overhead.
+          </p>
+          <p class="text-slate-300 text-sm leading-relaxed mb-3">
+            MAPLE profiles the empirical activation manifold specifically on technical, algorithmic, and deductive tokens. We prune the 80 dormant experts and preserve the 48 active ones, masking excised router logits to -inf so softmax remains numerically stable.
+          </p>
+          <p class="text-slate-300 text-sm leading-relaxed">
+            Within the target domain (Python algorithmic synthesis, data structures, and logic), the model retains 100% functional unit-test execution when given standard token generation headroom (-n 512). The intentional trade-off is higher out-of-domain multilingual perplexity, which enables the model to run 100% inside 6GB VRAM at 45.4 TPS instead of stalling over PCIe at 6.9 TPS.
+          </p>
+        </div>
+      </div>
     </section>
 
     <!-- Section 2: Architecture Deep Dive -->
@@ -466,6 +489,13 @@
               <i data-lucide="graduation-cap" class="w-4 h-4 text-emerald-400"></i>
               <span>Google Scholar Profile</span>
             </a>
+
+            <!-- Kaggle DOI Badge -->
+            <a href="https://doi.org/10.34740/KAGGLE/M/786779" target="_blank" rel="noopener" class="px-5 py-3 rounded-xl bg-[#20BEFF]/10 hover:bg-[#20BEFF]/20 border border-[#20BEFF]/30 text-[#20BEFF] text-xs font-medium flex items-center gap-2.5 transition-all">
+              <div class="w-6 h-6 rounded-lg bg-[#20BEFF]/20 text-[#20BEFF] flex items-center justify-center font-bold text-xs">K</div>
+              <span>Kaggle DOI 10.34740/KAGGLE/M/786779</span>
+              <i data-lucide="external-link" class="w-3 h-3 text-[#20BEFF]"></i>
+            </a>
           </div>
         </div>
       </div>
@@ -489,6 +519,15 @@
   year={2026},
   doi={10.5281/zenodo.24042480},
   url={https://doi.org/10.5281/zenodo.24042480}
+}
+
+@misc{sachan2026maple_kaggle,
+  author={Sachan, Aman},
+  title={MAPLE: Gemma 4 26B Sub-5GB MoE},
+  publisher={Kaggle},
+  year={2026},
+  doi={10.34740/KAGGLE/M/786779},
+  url={https://doi.org/10.34740/KAGGLE/M/786779}
 }</code></pre>
         </div>
       </div>
@@ -504,6 +543,7 @@
       <a href="https://github.com/ggml-org/llama.cpp/discussions/31894" target="_blank" rel="noopener" class="hover:text-slate-300 transition-colors">llama.cpp Community</a>
       <a href="https://launchnest.io/p/maple-2" target="_blank" rel="noopener" class="hover:text-slate-300 transition-colors">LaunchNest Listing</a>
       <a href="https://www.pitchhut.com/project/maple-moe-pruning" target="_blank" rel="noopener" class="hover:text-slate-300 transition-colors">PitchHut Showcase</a>
+      <a href="https://doi.org/10.34740/KAGGLE/M/786779" target="_blank" rel="noopener" class="hover:text-slate-300 transition-colors">Kaggle Model DOI</a>
     </div>
     <p>MAPLE Architecture by Aman Sachan. Open source under Apache 2.0. Verified without synthetic contact data.</p>
   </footer>
