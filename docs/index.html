@@ -130,6 +130,7 @@
         <div class="hidden md:flex items-center gap-7 text-sm font-medium text-slate-400">
           <a href="#benchmarks" class="hover:text-white transition-colors">Benchmarks</a>
           <a href="#architecture" class="hover:text-white transition-colors">Architecture</a>
+          <a href="#portability" class="hover:text-white transition-colors">Portability & MoE Guide</a>
           <a href="#quickstart" class="hover:text-white transition-colors">Quickstart</a>
           <a href="#paper" class="hover:text-white transition-colors">Preprint</a>
         </div>
@@ -411,6 +412,109 @@
             <p class="text-sm text-slate-400 leading-relaxed">
               Preserved expert tensor slices are quantized into IQ2_XXS block representations using importance matrix weights, packaging the complete 26B model into a single 4.75 GB binary.
             </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section: Universal MoE Portability & Dynamic Calibration -->
+    <section id="portability" class="pt-20 pb-12">
+      <div class="text-center max-w-3xl mx-auto mb-12">
+        <h2 class="text-xs font-mono uppercase tracking-[0.2em] text-brand-400 font-semibold mb-3">Empirical Reproducibility & Portability</h2>
+        <p class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">Dynamic Calibration & Universal MoE Support</p>
+        <p class="text-slate-400 text-sm sm:text-base mt-3">Pruning follows your activation manifold. Understand why your workload yields your model, and how to adapt MAPLE to any Sparse MoE architecture.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
+        <!-- Card 1: Calibration Reality -->
+        <div class="outer-bezel">
+          <div class="inner-core p-8 h-full flex flex-col justify-between border-t-2 border-brand-500">
+            <div>
+              <div class="flex items-center gap-3 mb-4">
+                <div class="w-8 h-8 rounded-lg bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-brand-400">
+                  <i data-lucide="sliders" class="w-4 h-4"></i>
+                </div>
+                <span class="text-xs font-mono uppercase tracking-wider text-slate-300 font-semibold">Empirical Calibration Reality</span>
+              </div>
+              <h3 class="text-xl font-bold text-white mb-3">Results Follow Your Calibration Corpus</h3>
+              <p class="text-slate-300 text-sm leading-relaxed mb-4">
+                MAPLE results are strictly deterministic and reproducible, but variable depending on your calibration dataset. What we released is a reference implementation on Gemma 4 26B-A4B optimized for edge technical execution.
+              </p>
+              <div class="space-y-3 text-xs font-mono text-slate-300 bg-black/40 p-4 rounded-xl border border-white/5">
+                <div>
+                  <span class="text-brand-400 font-semibold">Technical Specialization (Our Reference):</span> Pruned 80 dormant experts, preserved 48 active ones. Reduced from 9.92 GB to 4.75 GB for 100% in-VRAM execution on 6GB GPUs.
+                </div>
+                <div>
+                  <span class="text-accent-emerald font-semibold">General-Purpose Workloads:</span> Calibrating on diverse multilingual dialogue activates a broad manifold. The optimizer may prune only 20 to 40 experts, retaining 88 to 108 experts for broad versatility.
+                </div>
+                <div>
+                  <span class="text-amber-400 font-semibold">Domain Customization:</span> Biomedical, legal, or financial corpora activate entirely different expert clusters. If your workload is different, you get a different model.
+                </div>
+              </div>
+            </div>
+            <p class="text-slate-400 text-xs mt-4 italic">
+              "The reference Gemma 4 model proves the pipeline works. Your domain calibration produces your tailored edge container."
+            </p>
+          </div>
+        </div>
+
+        <!-- Card 2: Universal Architecture Agnostic -->
+        <div class="outer-bezel">
+          <div class="inner-core p-8 h-full flex flex-col justify-between border-t-2 border-accent-emerald">
+            <div>
+              <div class="flex items-center gap-3 mb-4">
+                <div class="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-accent-emerald">
+                  <i data-lucide="git-branch" class="w-4 h-4"></i>
+                </div>
+                <span class="text-xs font-mono uppercase tracking-wider text-slate-300 font-semibold">Universal SMoE Portability</span>
+              </div>
+              <h3 class="text-xl font-bold text-white mb-3">Theoretically & Practically Universal Across All MoEs</h3>
+              <p class="text-slate-300 text-sm leading-relaxed mb-4">
+                Because MAPLE operates on fundamental router logits and activation variance, the mathematical formulation is directly portable to any Sparse Mixture-of-Experts transformer:
+              </p>
+              <div class="grid grid-cols-2 gap-2 text-xs font-mono text-slate-300 mb-4">
+                <div class="p-2.5 rounded-lg bg-white/5 border border-white/5">Liquid AI LFM 24B MoE</div>
+                <div class="p-2.5 rounded-lg bg-white/5 border border-white/5">Mixtral 8x7B / 8x22B</div>
+                <div class="p-2.5 rounded-lg bg-white/5 border border-white/5">DeepSeek-V2 / V3 MoE</div>
+                <div class="p-2.5 rounded-lg bg-white/5 border border-white/5">Qwen 2.5 MoE (57B-A14B)</div>
+              </div>
+              <p class="text-slate-400 text-xs leading-relaxed">
+                Any model using top-k router gating can be profiled via <code class="text-brand-400">llama-imatrix</code> or PyTorch forward hooks, sliced, and masked to -inf without retraining.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5-Step Universal Porting Guide Box -->
+      <div class="outer-bezel">
+        <div class="inner-core p-8 border-l-4 border-accent-emerald">
+          <div class="flex items-center gap-3 mb-6">
+            <span class="px-3 py-1 rounded-full text-xs font-mono font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Universal Recipe</span>
+            <span class="text-xs font-mono text-slate-400 uppercase tracking-wider">How to Apply MAPLE to Any MoE Model (LFM-24B, Mixtral, DeepSeek)</span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-5 gap-4 text-xs font-mono">
+            <div class="p-4 rounded-xl bg-black/40 border border-white/5">
+              <span class="text-brand-400 font-bold block mb-1">01. CALIBRATE</span>
+              <p class="text-slate-400">Assemble 2k-10k tokens of domain text representing your target operational workload.</p>
+            </div>
+            <div class="p-4 rounded-xl bg-black/40 border border-white/5">
+              <span class="text-brand-400 font-bold block mb-1">02. PROFILE</span>
+              <p class="text-slate-400">Run <code class="text-slate-200">llama-imatrix</code> to capture activation frequencies and channel energy matrix.</p>
+            </div>
+            <div class="p-4 rounded-xl bg-black/40 border border-white/5">
+              <span class="text-brand-400 font-bold block mb-1">03. SCORE</span>
+              <p class="text-slate-400">Compute composite score <code class="text-slate-200">s = C * sqrt(sigma + eps)</code> and rank active experts per layer.</p>
+            </div>
+            <div class="p-4 rounded-xl bg-black/40 border border-white/5">
+              <span class="text-brand-400 font-bold block mb-1">04. MASK -INF</span>
+              <p class="text-slate-400">Excise unselected expert tensors and set excised router logits to -inf for softmax invariance.</p>
+            </div>
+            <div class="p-4 rounded-xl bg-black/40 border border-white/5">
+              <span class="text-emerald-400 font-bold block mb-1">05. DEPLOY</span>
+              <p class="text-slate-400">Quantize via <code class="text-slate-200">llama-quantize</code> (IQ2_XXS / Q4_K_M) for 100% in-VRAM execution.</p>
+            </div>
           </div>
         </div>
       </div>
