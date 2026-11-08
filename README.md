@@ -1,3 +1,21 @@
+---
+language:
+- en
+license: apache-2.0
+tags:
+- moe
+- mixture-of-experts
+- pruning
+- gemma-4
+- llama.cpp
+- gguf
+- edge-ai
+- model-compression
+base_model: google/gemma-4-26B-A4B-it
+pipeline_tag: text-generation
+library_name: gguf
+---
+
 # MAPLE: Manifold-Activated Pruning of Latent Experts
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
