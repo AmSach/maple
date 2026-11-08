@@ -15,8 +15,6 @@ BASE_DIR    = os.path.dirname(os.path.abspath(__file__))
 SOURCE_GGUF = r"D:\models\gemma_4_26b\gemma-4-26B-A4B-it-UD-IQ2_XXS.gguf"
 TARGET_GGUF = r"D:\models\gemma_4_26b\gemma_4_26b_sub5gb_insitu.gguf"
 JSON_PATH   = os.path.join(BASE_DIR, "expert_selection_map.json")
-if not os.path.exists(JSON_PATH):
-    JSON_PATH = r"C:\Users\amans\.gemini\antigravity\scratch\repos\middleout-lattice\engine\layer_experts_empirical_48.json"
 N_EXPERTS   = 48
 N_EXPERT_USED = 8
 

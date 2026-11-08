@@ -1,28 +1,31 @@
 """
-MAPLE: Empirical Expert Profiler
-Analyzes forward-pass imatrix statistics and extracts optimal expert indices.
+Scores and extracts top-48 experts per layer from imatrix data.
+Formula: score = count * sqrt(energy + 1e-8)
+Tie-breaker: Router gate input weight norm for dormant experts.
 Outputs: expert_selection_map.json
 """
 
 import os
+import sys
 import json
 import numpy as np
 import gguf
 
 BASE_DIR     = os.path.dirname(os.path.abspath(__file__))
 IMATRIX_PATH = os.path.join(BASE_DIR, "comprehensive_imatrix.gguf")
-if not os.path.exists(IMATRIX_PATH):
-    IMATRIX_PATH = r"C:\Users\amans\.gemini\antigravity\scratch\repos\middleout-lattice\engine\comprehensive_imatrix.gguf"
 OUTPUT_JSON  = os.path.join(BASE_DIR, "expert_selection_map.json")
 N_EXPERTS    = 48
 
-def extract():
+def main():
     print("=" * 80)
-    print("  EXTRACTING EMPIRICAL EXPERTS FROM COMPREHENSIVE IMATRIX")
-    print(f"  Source: {IMATRIX_PATH}")
-    print(f"  Target: {OUTPUT_JSON} (Top {N_EXPERTS} experts per layer)")
+    print("  MAPLE: Manifold-Activated Pruning of Latent Experts - Profiler")
+    print(f"  Input imatrix: {IMATRIX_PATH}")
+    print(f"  Target experts per layer: {N_EXPERTS}")
     print("=" * 80)
     
+    if not os.path.exists(IMATRIX_PATH):
+        raise FileNotFoundError(f"imatrix not found at: {IMATRIX_PATH}")
+        
     reader = gguf.GGUFReader(IMATRIX_PATH)
     tensor_map = {t.name: t for t in reader.tensors}
     
@@ -30,8 +33,8 @@ def extract():
     coverages = []
     
     for l in range(30):
-        counts_name = f"blk.{l}.ffn_down_exps.weight.counts"
-        insum2_name = f"blk.{l}.ffn_down_exps.weight.in_sum2"
+        counts_name = f"blk.{l}.ffn_down_exps.weight.imatrix.call_counts"
+        insum2_name = f"blk.{l}.ffn_down_exps.weight.imatrix.in_sum2"
         
         if counts_name not in tensor_map:
             raise KeyError(f"Missing {counts_name} in imatrix!")
@@ -43,11 +46,24 @@ def extract():
             energy = np.mean(in_sum2, axis=1) # (128,)
             score = counts * np.sqrt(energy + 1e-8)
         else:
-            score = counts
+            score = counts.copy()
             
-        # Tie-breaker for zero-count experts: router weight norm
-        # If fewer than N_EXPERTS were active, pick remaining based on router gate norm
+        # Tie-breaker for zero-count / dormant experts: router weight norm
         zero_mask = (counts == 0)
+        if np.any(zero_mask):
+            gate_name = f"blk.{l}.ffn_gate_inp.weight"
+            if gate_name in tensor_map:
+                gate_w = tensor_map[gate_name].data.astype(np.float64)
+                # Compute L2 norm across input dimension
+                if gate_w.shape[0] == 128:
+                    gate_norms = np.linalg.norm(gate_w, axis=1)
+                elif gate_w.shape[1] == 128:
+                    gate_norms = np.linalg.norm(gate_w, axis=0)
+                else:
+                    gate_norms = np.zeros(128)
+                norm_bonus = (gate_norms / (np.max(gate_norms) + 1e-8)) * 1e-6
+                score = score + (zero_mask * norm_bonus)
+            
         sorted_indices = list(np.argsort(score)[::-1])
         
         # Filter to make sure top N_EXPERTS are selected
@@ -75,4 +91,4 @@ def extract():
     print(f"[+] Saved {OUTPUT_JSON} successfully!")
 
 if __name__ == "__main__":
-    extract()
+    main()

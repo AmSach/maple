@@ -25,7 +25,7 @@ CANDIDATE_MODEL_PATHS = [
 ]
 MODEL_PATH = next((p for p in CANDIDATE_MODEL_PATHS if os.path.exists(p)), CANDIDATE_MODEL_PATHS[0])
 LLAMA_CLI     = r"D:\tools\llama-cpp\llama-cli.exe"
-OLLAMA_LIB    = r"C:\Users\amans\AppData\Local\Programs\Ollama\lib\ollama"
+OLLAMA_LIB    = os.path.expanduser(r"~\AppData\Local\Programs\Ollama\lib\ollama")
 LLAMA_CPP_DIR = r"D:\tools\llama-cpp"
 
 env = os.environ.copy()

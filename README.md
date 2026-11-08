@@ -9,7 +9,7 @@
 [![Hardware](https://img.shields.io/badge/Target%20Hardware-RTX%204050%206GB%20(100%25%20VRAM)-orange.svg)]()
 
 > **Sub-2-BPW Structural Compression for Mixture-of-Experts (MoE) LLMs**  
-> Compressing **Gemma 4 26B-A4B** from **9.92 GB to 4.75 GB** (1.48 effective bits/param), enabling **100% In-VRAM GPU Execution** on 6 GB laptop GPUs with **45.4 Tokens/Second** throughput.
+> Compressing **Gemma 4 26B-A4B** from **9.92 GB to 4.75 GB** (10.95B physical container params at 3.47 BPW, 1.48 effective bits/param relative to unpruned 25.6B base), enabling **100% In-VRAM GPU Execution** on 6 GB laptop GPUs with **45.4 Tokens/Second** throughput.
 
 **Author**: Aman Sachan ([Google Scholar](https://scholar.google.com/citations?user=dfgiWLYAAAAJ&hl=en) | [amansachan92905@gmail.com](mailto:amansachan92905@gmail.com))  
 **Organization**: Independent Systems Research  
@@ -66,7 +66,7 @@ where:
 - **`s_{e,l}`**: Composite importance score for expert `e` in layer `l`
 - **`C_{e,l}`**: Empirical token activation frequency (routing count)
 - **`σ̄_{e,l}`**: Mean input channel activation energy
-- **`ε`**: Numerical stability floor (10⁻⁶)
+- **`ε`**: Numerical stability floor (10⁻⁸)
 
 Applied to Gemma 4 26B-A4B (128 routed experts, 30 layers), MAPLE excises 80 dormant experts per layer to assemble an optimized 48-expert GGUF container capturing **79.88% of active forward-pass activation mass**.
 
@@ -74,21 +74,26 @@ Applied to Gemma 4 26B-A4B (128 routed experts, 30 layers), MAPLE excises 80 dor
 
 ## Performance Benchmark (RTX 4050 6GB Laptop GPU)
 
-| Configuration | Model Size | VRAM Allocation | Offloaded Layers | Generation Speed | Latency |
-|---|---|---|---|---|---|
-| **Original 128-Expert Base (Gemma 4 26B-A4B)** | 9.92 GB | 6,141 MiB (paged) | 16 / 30 | 6.9 Tokens/Sec | 144.9 ms / token |
-| **MAPLE 48-Expert Container (Gemma 4 26B-A4B)** | **4.75 GB** | **4,180 MiB (100% VRAM)** | **30 / 30** | **45.4 Tokens/Sec** | **22.0 ms / token** |
-| **Improvement** | **2.09x smaller** | **-32% VRAM** | **100% In-VRAM** | **6.57x speedup** | **6.58x faster** |
+| Configuration | Model Size | Parameter Count | Bitrate | VRAM Footprint | Offloaded Layers | Generation Speed | Latency |
+|---|---|---|---|---|---|---|---|
+| **Original 128-Expert Base** | 9.92 GB | 25.6B total | ~3.10 BPW | 6,141 MiB (paged) | 16 / 30 | 6.9 Tokens/Sec | 144.9 ms / token |
+| **MAPLE 48-Expert Container** | **4.75 GB** | **10.95B active** | **3.47 BPW (1.48 eff.)** | **4,820 MiB (100% VRAM)** | **30 / 30** | **45.4 Tokens/Sec** | **22.0 ms / token** |
+| **Improvement** | **2.09x smaller** | **-57.2% params** | **1.48 eff. BPW** | **1.32 GB VRAM headroom** | **100% In-VRAM** | **6.57x speedup** | **6.58x faster** |
 
-### Task-Level Semantic Fidelity Benchmark
+> **VRAM Accounting Note:**  
+> The 4.75 GB GGUF container occupies 4,526 MiB of static weight memory in VRAM. With a 2048-token context window KV cache and compute scratch buffers (~294 MiB), total runtime memory allocation is 4,820 MiB, leaving 1,324 MiB (1.29 GiB) of free VRAM headroom on a 6 GB (6,144 MiB) RTX 4050 GPU.  
+> **Bitrate Accounting Note:**  
+> 4,745,987,168 bytes across the 10,952,640,446 physical tensor elements evaluates to 3.47 physical bits/param (blended between IQ2_XXS on experts and higher precision on shared layers). Relative to the unpruned 25.6B base architecture, it represents 1.48 effective bits per base parameter.
 
-| Task | Domain | Tested Capabilities | Fidelity |
-|---|---|---|---|
-| **T1: Fibonacci** | Code Synthesis | `def fibonacci`, `return`, `append`, `[0,1]` | **100%** |
-| **T2: Binary Search Tree** | Data Structures | `class Node`, `class BST`, `insert`, `search` | **75%** (100% with context >= 500) |
-| **T3: Rayleigh Scattering** | Physics Reasoning | `Rayleigh`, `wavelength`, `scattering`, `blue` | **100%** |
-| **T4: Syllogistic Logic** | Formal Deduction | `transitive`, `syllogism`, set containment | **100%** |
-| **Overall Mean** | | | **93.8%** |
+### Task-Level Semantic & Execution Fidelity Benchmark
+
+| Task | Domain | Tested Capabilities | Keyword Hit Rate | Functional Execution |
+|---|---|---|---|---|
+| **T1: Fibonacci** | Code Synthesis | `def fibonacci`, `return`, `append`, `[0,1]` | **100%** | **PASSED** (`fibonacci(10)` assert) |
+| **T2: Binary Search Tree** | Data Structures | `class Node`, `class BST`, `insert`, `search` | **75%** (100% @ ctx >= 500) | Valid syntax |
+| **T3: Rayleigh Scattering** | Physics Reasoning | `Rayleigh`, `wavelength`, `scattering`, `blue` | **100%** | Coherent derivation |
+| **T4: Syllogistic Logic** | Formal Deduction | `transitive`, `syllogism`, set containment | **100%** | Step-by-step logic |
+| **Overall Mean** | | | **93.8%** | **Syntax & Logic Preserved** |
 
 ---
 
