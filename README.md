@@ -7,6 +7,7 @@
 [![Direct Download](https://img.shields.io/badge/Direct%20Download-4.75%20GB%20GGUF-brightgreen.svg)](https://huggingface.co/AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF/resolve/main/gemma-4-26B-A4B-MAPLE-IQ2_XXS.gguf?download=true)
 [![Format](https://img.shields.io/badge/Format-GGUF-green.svg)](https://github.com/ggerganov/llama.cpp)
 [![Hardware](https://img.shields.io/badge/Target%20Hardware-RTX%204050%206GB%20(100%25%20VRAM)-orange.svg)]()
+[![LaunchNest](https://launchnest.io/badge/maple.svg?variant=featured)](https://launchnest.io/p/maple)
 
 > **Sub-2-BPW Structural Compression for Mixture-of-Experts (MoE) LLMs**  
 > Compressing **Gemma 4 26B-A4B** from **9.92 GB to 4.75 GB** (10.95B physical container params at 3.47 BPW, 1.48 effective bits/param relative to unpruned 25.6B base), enabling **100% In-VRAM GPU Execution** on 6 GB laptop GPUs with **45.4 Tokens/Second** throughput.
