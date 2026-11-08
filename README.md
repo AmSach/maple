@@ -28,12 +28,25 @@ library_name: gguf
 [![PitchHut](https://img.shields.io/badge/PitchHut-Featured%20Showcase-orange.svg)](https://www.pitchhut.com/project/maple-moe-pruning)
 [![llama.cpp Showcase](https://img.shields.io/badge/llama.cpp-Showcase%20%2331894-purple.svg)](https://github.com/ggml-org/llama.cpp/discussions/31894)
 [![Interactive Site](https://img.shields.io/badge/Official%20Site-amsach.github.io%2Fmaple-indigo.svg)](https://amsach.github.io/maple/)
+[![Kaggle DOI](https://img.shields.io/badge/Kaggle%20DOI-10.34740%2FKAGGLE%2FM%2F786779-20BEFF.svg?logo=kaggle&logoColor=white)](https://doi.org/10.34740/KAGGLE/M/786779)
+[![MAPLE on LaunchNest](https://launchnest.io/badge/maple.svg?variant=featured)](https://launchnest.io/p/maple)
 
 > **Sub-2-BPW Structural Compression for Mixture-of-Experts (MoE) LLMs**  
 > Compressing **Gemma 4 26B-A4B** from **9.92 GB to 4.75 GB** (10.95B physical container params at 3.47 BPW, 1.48 effective bits/param relative to unpruned 25.6B base), enabling **100% In-VRAM GPU Execution** on 6 GB laptop GPUs with **45.4 Tokens/Second** throughput.
 
 **Author**: Aman Sachan ([Google Scholar](https://scholar.google.com/citations?user=dfgiWLYAAAAJ&hl=en) | [amansachan92905@gmail.com](mailto:amansachan92905@gmail.com))  
 **Organization**: Independent Systems Research  
+
+---
+
+## Architectural Framing: Domain-Targeted Pareto Distillation
+
+> **Why Domain-Targeted Distillation Works:**  
+> We did not attempt lossy random pruning across the entire internet. Gemma 4 26B uses 128 fine-grained experts where massive clusters specialize in non-English languages, translation, and non-technical trivia. For edge code generation and technical deduction, those experts are dormant overhead.  
+>  
+> MAPLE profiles the empirical activation manifold specifically on technical, algorithmic, and deductive tokens. We prune the 80 dormant experts and preserve the 48 active ones, masking excised router logits to -inf so softmax remains numerically stable.  
+>  
+> Within the target domain (Python algorithmic synthesis, data structures, and logic), the model retains 100% functional unit-test execution when given standard token generation headroom (-n 512). The intentional trade-off is higher out-of-domain multilingual perplexity, which enables the model to run 100% inside 6GB VRAM at 45.4 TPS instead of stalling over PCIe at 6.9 TPS.
 
 ---
 
@@ -56,6 +69,7 @@ The MAPLE pruning pipeline is domain-agnostic and can be applied to any speciali
 The pre-built, verified 4.75 GB GGUF container is hosted on Hugging Face:
 
 - **Hugging Face Model Repository**: [AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF](https://huggingface.co/AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF)
+- **Kaggle Model Registry & DOI**: [Aman Sachan (2026). MAPLE: Gemma 4 26B Sub-5GB MoE. Kaggle. DOI: 10.34740/KAGGLE/M/786779](https://doi.org/10.34740/KAGGLE/M/786779)
 - **Direct Binary Download**: [gemma-4-26B-A4B-MAPLE-IQ2_XXS.gguf (4.75 GB)](https://huggingface.co/AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF/resolve/main/gemma-4-26B-A4B-MAPLE-IQ2_XXS.gguf?download=true)
 
 ### Direct Execution via `llama.cpp`:
@@ -77,7 +91,7 @@ llama-cli \
 
 ## Overview
 
-While global multilingual pre-training necessitates 128–256 experts to serve hundreds of human languages and encyclopedic domains, localized edge deployments (such as English technical reasoning and code generation) activate only a narrow subset of experts. 
+While global multilingual pre-training necessitates 128-256 experts to serve hundreds of human languages and encyclopedic domains, localized edge deployments (such as English technical reasoning and code generation) activate only a narrow subset of experts. 
 
 MAPLE discovers this latent manifold by profiling live forward-pass expert activations via `llama-imatrix`, scoring experts via a composite frequency-energy metric:
 
@@ -178,6 +192,15 @@ The compressed 4.75 GB GGUF model container is publicly hosted on Hugging Face:
 
 ## Citation
 
+If you use MAPLE in your research or applications, please cite both the software archive and the Kaggle model release:
+
+### APA:
+```text
+Sachan, A. (2026). MAPLE: Manifold-Activated Pruning of Latent Experts. Zenodo. https://doi.org/10.5281/zenodo.24042480
+Sachan, A. (2026). MAPLE: Gemma 4 26B Sub-5GB MoE. Kaggle. https://doi.org/10.34740/KAGGLE/M/786779
+```
+
+### BibTeX:
 ```bibtex
 @article{sachan2026maple,
   title={MAPLE: Manifold-Activated Pruning of Latent Experts},
@@ -186,5 +209,14 @@ The compressed 4.75 GB GGUF model container is publicly hosted on Hugging Face:
   year={2026},
   doi={10.5281/zenodo.24042480},
   url={https://doi.org/10.5281/zenodo.24042480}
+}
+
+@misc{sachan2026maple_kaggle,
+  author={Sachan, Aman},
+  title={MAPLE: Gemma 4 26B Sub-5GB MoE},
+  publisher={Kaggle},
+  year={2026},
+  doi={10.34740/KAGGLE/M/786779},
+  url={https://doi.org/10.34740/KAGGLE/M/786779}
 }
 ```
