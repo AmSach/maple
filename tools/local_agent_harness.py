@@ -177,10 +177,10 @@ def micro_model_route(prompt: str) -> Tuple[str, str]:
     """Uses a dedicated 0.5B CPU-resident micro-model (qwen2.5:0.5b, 0 MB VRAM) to classify intent."""
     router_prompt = (
         "Pick ONE model for this task:\n"
-        "deepseek = C++, Rust, CUDA, lock-free concurrency, systems, algorithms\n"
-        "gemma = Python, web/HTML/CSS/JS, APIs, scripts, PDF/Excel/PPTX/LaTeX files\n"
+        "deepseek = C++, CMake, Rust, CUDA, lock-free concurrency, systems, engine builds\n"
+        "gemma = Python, pytest, web/HTML/CSS/JS, APIs, scripts, PDF/Excel/PPTX/LaTeX\n"
         "bonsai = Architecture trade-offs, strategy, decision-making, game theory, reasoning\n"
-        "fast = Git commits, regex, shell one-liners, quick syntax fixes\n\n"
+        "fast = ONLY trivial 1-line git commits, regex, or 1-sentence chat (NEVER multi-step builds or repos)\n\n"
         f"Task: {prompt[:450]}\n\n"
         'Reply ONLY JSON: {"model": "deepseek|gemma|bonsai|fast", "reason": "5 words max"}'
     )
@@ -204,6 +204,10 @@ def micro_model_route(prompt: str) -> Tuple[str, str]:
                 chosen = str(data.get("model", "")).strip().lower()
                 reason = str(data.get("reason", "0.5B micro-router")).strip()
                 if chosen in MODEL_ROSTER:
+                    p_low = prompt.lower()
+                    if chosen == "fast" and (len(prompt) > 90 or any(k in p_low for k in ("cmake", "rebuild", "build", "pytest", "c++", "inspect", "repo", "test"))):
+                        chosen = "deepseek" if any(k in p_low for k in ("c++", "cmake", "engine", "cuda", "lattice")) else "gemma"
+                        reason = f"{reason} (upgraded for multi-step accuracy)"
                     return chosen, reason
             except Exception:
                 m = re.search(r'"model"\s*:\s*"(deepseek|gemma|bonsai|fast)"', raw, re.IGNORECASE)
@@ -605,24 +609,21 @@ TOOL_REGISTRY = {
     "vram_status": Tools.vram_status
 }
 
-TOOL_SCHEMAS = """
-Available Local & Web Tools:
-1. search_files(pattern="<regex/text>", path=".") - Locate symbols/lines before reading!
-2. read_file(path="<path>", start_line=<int>, end_line=<int>) - Read only needed line ranges.
-3. write_file(path="<path>", content="<content>")
-4. edit_file(path="<path>", target="<exact string>", replacement="<replacement string>")
-5. list_dir(path="<dir>", recursive=<bool>)
-6. run_command(cmd="<shell command>")
-7. python_eval(code="<python code>")
-8. web_search(query="<search terms>") - Search the web for current info/docs.
-9. fetch_url(url="<https://...>") - Read text from a webpage.
-10. git_status()
-11. vram_status()
-
-To call a tool, format your output strictly as:
-TOOL: <tool_name>
-ARGS: {"arg1": "value"}
-"""
+TOOL_SCHEMAS = """Tools:
+- search_files(pattern, path=".")
+- read_file(path, start_line=1, end_line=150)
+- write_file(path, content)
+- edit_file(path, target, replacement)
+- list_dir(path=".", recursive=false)
+- run_command(cmd)
+- python_eval(code)
+- web_search(query)
+- fetch_url(url)
+- git_status()
+- vram_status()
+Format:
+TOOL: <name>
+ARGS: {"arg": "val"}"""
 
 # Inference Dispatcher
 def query_model(model_key: str, prompt: str, system: Optional[str] = None, stream: bool = True) -> str:
@@ -650,7 +651,9 @@ def query_model(model_key: str, prompt: str, system: Optional[str] = None, strea
         "stream": stream,
         "options": {
             "temperature": cfg["temperature"],
-            "num_predict": cfg["max_tokens"]
+            "num_predict": cfg["max_tokens"],
+            "num_ctx": 4096,
+            "stop": ["\n[Step ", "\n\n[Step "]
         }
     }
     if system:
@@ -824,9 +827,11 @@ def run_autonomous_agent(task: str, model_key: str = "auto", max_steps: int = 8)
         if step_observations:
             recent_steps.append(f"Step {step}:\n" + "\n".join(step_observations))
 
-        if not executed_any_tool and ("FINAL ANSWER:" in response or "DONE" in response):
-            print("\n[+] Task goal completed!")
-            break
+        if not executed_any_tool:
+            if "FINAL ANSWER:" in response or "DONE" in response:
+                print("\n[+] Task goal completed!")
+                break
+            recent_steps.append(f"Step {step}: No tool executed. Either output TOOL: <name> + ARGS: {{...}}, or output FINAL ANSWER: <report>.")
 
 # Interactive Terminal REPL
 def run_interactive_repl(initial_model: str = "auto"):

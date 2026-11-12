@@ -570,7 +570,12 @@ class AgentWorker(QThread):
                 "model": cfg["id"],
                 "prompt": prompt,
                 "stream": True,
-                "options": {"temperature": cfg["temperature"], "num_predict": cfg["max_tokens"]},
+                "options": {
+                    "temperature": cfg["temperature"],
+                    "num_predict": cfg["max_tokens"],
+                    "num_ctx": 4096,
+                    "stop": ["\n[Step ", "\n\n[Step "],
+                },
             }
             if system:
                 payload["system"] = system
@@ -1188,10 +1193,29 @@ class MapleDesktopWindow(QMainWindow):
 
 
 def main():
-    app = QApplication(sys.argv)
+    import argparse
+    parser = argparse.ArgumentParser(description="MAPLE Local Agent Desktop")
+    parser.add_argument("--workdir", default=None, help="Initial working directory")
+    parser.add_argument("--task", default=None, help="Initial prompt/task to prefill")
+    parser.add_argument("--model", default="auto", choices=["auto", "deepseek", "gemma", "bonsai", "fast"], help="Initial model")
+    parser.add_argument("--autorun", action="store_true", help="Automatically start the prefilled task")
+    args, qt_args = parser.parse_known_args()
+
+    app = QApplication([sys.argv[0]] + qt_args)
     app.setStyleSheet(DARK_STYLESHEET)
     win = MapleDesktopWindow()
+    if args.workdir and os.path.isdir(args.workdir):
+        win.workdir = os.path.abspath(args.workdir)
+        win.workdir_edit.setText(win.workdir)
+        win.fs_model.setRootPath(win.workdir)
+        win.tree.setRootIndex(win.fs_model.index(win.workdir))
+    if args.model in ("auto", "deepseek", "gemma", "bonsai", "fast"):
+        win.selected_model_key = args.model
+    if args.task:
+        win.prompt_input.setPlainText(args.task)
     win.show()
+    if args.autorun and args.task:
+        QTimer.singleShot(400, win._start_run)
     sys.exit(app.exec())
 
 
