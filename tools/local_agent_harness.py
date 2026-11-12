@@ -157,6 +157,63 @@ def auto_choose_model(prompt: str) -> str:
     # 4. General Software / Scripts / Frontend -> Gemma
     return "gemma"
 
+def load_agent_rules() -> str:
+    """Loads persistent synced rules from maple_agent_rules.md."""
+    candidates = [
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "maple_agent_rules.md"),
+        r"E:\OllamaModels\maple_agent_rules.md",
+        r"C:\Users\amans\.gemini\antigravity\scratch\repos\maple\maple_agent_rules.md",
+    ]
+    for p in candidates:
+        if os.path.exists(p):
+            try:
+                with open(p, "r", encoding="utf-8", errors="replace") as f:
+                    return f.read().strip()
+            except Exception:
+                pass
+    return ""
+
+def micro_model_route(prompt: str) -> Tuple[str, str]:
+    """Uses a dedicated 0.5B CPU-resident micro-model (qwen2.5:0.5b, 0 MB VRAM) to classify intent."""
+    router_prompt = (
+        "Pick ONE model for this task:\n"
+        "deepseek = C++, Rust, CUDA, lock-free concurrency, systems, algorithms\n"
+        "gemma = Python, web/HTML/CSS/JS, APIs, scripts, PDF/Excel/PPTX/LaTeX files\n"
+        "bonsai = Architecture trade-offs, strategy, decision-making, game theory, reasoning\n"
+        "fast = Git commits, regex, shell one-liners, quick syntax fixes\n\n"
+        f"Task: {prompt[:450]}\n\n"
+        'Reply ONLY JSON: {"model": "deepseek|gemma|bonsai|fast", "reason": "5 words max"}'
+    )
+    try:
+        r = requests.post(
+            f"{DEFAULT_OLLAMA_API}/api/generate",
+            json={
+                "model": "qwen2.5:0.5b",
+                "prompt": router_prompt,
+                "stream": False,
+                "format": "json",
+                "keep_alive": "20m",
+                "options": {"num_gpu": 0, "temperature": 0.0, "num_predict": 96},
+            },
+            timeout=15.0,
+        )
+        if r.status_code == 200:
+            raw = r.json().get("response", "").strip()
+            try:
+                data = json.loads(raw)
+                chosen = str(data.get("model", "")).strip().lower()
+                reason = str(data.get("reason", "0.5B micro-router")).strip()
+                if chosen in MODEL_ROSTER:
+                    return chosen, reason
+            except Exception:
+                m = re.search(r'"model"\s*:\s*"(deepseek|gemma|bonsai|fast)"', raw, re.IGNORECASE)
+                if m:
+                    return m.group(1).lower(), "0.5B micro-router"
+    except Exception:
+        pass
+    fallback = auto_choose_model(prompt)
+    return fallback, "Heuristic fallback (micro-router offline)"
+
 # VRAM Arbitrator for 6GB Laptop GPU
 def ensure_vram_for_model(model_key: str):
     target_backend = MODEL_ROSTER.get(model_key, {}).get("backend", "ollama")
@@ -434,27 +491,133 @@ class Tools:
                 }
         return {"raw": res["stdout"]}
 
+    @staticmethod
+    def search_files(pattern: str, path: str = ".", max_hits: int = 30) -> Dict[str, Any]:
+        """Searches text files for a pattern so the agent locates lines before reading."""
+        hits = []
+        try:
+            rx = re.compile(pattern, re.IGNORECASE)
+        except re.error:
+            rx = re.compile(re.escape(pattern), re.IGNORECASE)
+        skip_dirs = {".git", "__pycache__", "node_modules", ".venv", "venv"}
+        for root, dirs, files in os.walk(path):
+            dirs[:] = [d for d in dirs if d not in skip_dirs]
+            for fn in files:
+                if fn.lower().endswith((".gguf", ".bin", ".exe", ".dll", ".png", ".jpg", ".pdf", ".xlsx", ".pptx")):
+                    continue
+                fp = os.path.join(root, fn)
+                try:
+                    with open(fp, "r", encoding="utf-8", errors="ignore") as f:
+                        for idx, line in enumerate(f, start=1):
+                            if rx.search(line):
+                                hits.append(f"{fp}:{idx}: {line.strip()[:140]}")
+                                if len(hits) >= max_hits:
+                                    return {"matches": hits, "truncated": True}
+                except Exception:
+                    continue
+        return {"matches": hits, "truncated": False}
+
+    @staticmethod
+    def web_search(query: str, max_results: int = 5) -> Dict[str, Any]:
+        """Searches official JSON APIs (DuckDuckGo Instant Answer, StackOverflow, Wikipedia) with zero CAPTCHAs."""
+        results = []
+        headers = {"User-Agent": "MAPLE-Local-Agent/2.0"}
+        # 1. DuckDuckGo Instant Answer JSON
+        try:
+            r = requests.get(
+                "https://api.duckduckgo.com/",
+                params={"q": query, "format": "json", "no_html": 1, "skip_disambig": 1},
+                headers=headers,
+                timeout=8,
+            )
+            if r.status_code == 200:
+                d = r.json()
+                if d.get("AbstractText"):
+                    results.append({"title": d.get("Heading", query), "url": d.get("AbstractURL", ""), "snippet": d["AbstractText"]})
+                for topic in d.get("RelatedTopics", [])[:3]:
+                    if isinstance(topic, dict) and topic.get("Text"):
+                        results.append({"title": topic["Text"][:60], "url": topic.get("FirstURL", ""), "snippet": topic["Text"]})
+        except Exception:
+            pass
+        # 2. StackOverflow API (great for coding/library queries)
+        try:
+            r = requests.get(
+                "https://api.stackexchange.com/2.3/search/advanced",
+                params={"order": "desc", "sort": "relevance", "q": query, "site": "stackoverflow", "pagesize": max_results},
+                headers=headers,
+                timeout=8,
+            )
+            if r.status_code == 200:
+                for item in r.json().get("items", [])[:max_results]:
+                    results.append({
+                        "title": item.get("title", ""),
+                        "url": item.get("link", ""),
+                        "snippet": f"Tags: {', '.join(item.get('tags', []))} | Answered: {item.get('is_answered')}"
+                    })
+        except Exception:
+            pass
+        # 3. Wikipedia API (great for general/conceptual queries)
+        if len(results) < max_results:
+            try:
+                r = requests.get(
+                    "https://en.wikipedia.org/w/api.php",
+                    params={"action": "query", "list": "search", "srsearch": query, "format": "json", "srlimit": 3},
+                    headers=headers,
+                    timeout=8,
+                )
+                if r.status_code == 200:
+                    for item in r.json().get("query", {}).get("search", []):
+                        snip = re.sub(r"<[^>]+>", "", item.get("snippet", ""))
+                        title = item.get("title", "")
+                        results.append({"title": title, "url": f"https://en.wikipedia.org/wiki/{title.replace(' ', '_')}", "snippet": snip})
+            except Exception:
+                pass
+        return {"query": query, "results": results[:max_results]}
+
+    @staticmethod
+    def fetch_url(url: str, max_chars: int = 3500) -> Dict[str, Any]:
+        """Fetches a webpage and extracts clean readable text within finite context limits."""
+        try:
+            import html as html_lib
+            r = requests.get(
+                url,
+                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"},
+                timeout=12,
+            )
+            txt = re.sub(r"<(script|style)[^>]*>.*?</\1>", " ", r.text, flags=re.DOTALL | re.IGNORECASE)
+            txt = re.sub(r"<[^>]+>", " ", txt)
+            txt = html_lib.unescape(re.sub(r"\s+", " ", txt)).strip()
+            return {"url": url, "status": r.status_code, "text": txt[:max_chars]}
+        except Exception as e:
+            return {"url": url, "error": str(e)}
+
 TOOL_REGISTRY = {
     "run_command": Tools.run_command,
     "read_file": Tools.read_file,
     "write_file": Tools.write_file,
     "edit_file": Tools.edit_file,
     "list_dir": Tools.list_dir,
+    "search_files": Tools.search_files,
+    "web_search": Tools.web_search,
+    "fetch_url": Tools.fetch_url,
     "python_eval": Tools.python_eval,
     "git_status": Tools.git_status,
     "vram_status": Tools.vram_status
 }
 
 TOOL_SCHEMAS = """
-Available Local Tools:
-1. run_command(cmd="<shell command>")
-2. read_file(path="<path>", start_line=<int>, end_line=<int>)
+Available Local & Web Tools:
+1. search_files(pattern="<regex/text>", path=".") - Locate symbols/lines before reading!
+2. read_file(path="<path>", start_line=<int>, end_line=<int>) - Read only needed line ranges.
 3. write_file(path="<path>", content="<content>")
 4. edit_file(path="<path>", target="<exact string>", replacement="<replacement string>")
 5. list_dir(path="<dir>", recursive=<bool>)
-6. python_eval(code="<python code>")
-7. git_status()
-8. vram_status()
+6. run_command(cmd="<shell command>")
+7. python_eval(code="<python code>")
+8. web_search(query="<search terms>") - Search the web for current info/docs.
+9. fetch_url(url="<https://...>") - Read text from a webpage.
+10. git_status()
+11. vram_status()
 
 To call a tool, format your output strictly as:
 TOOL: <tool_name>
@@ -585,37 +748,51 @@ def query_model(model_key: str, prompt: str, system: Optional[str] = None, strea
     return full_text
 
 # Autonomous ReAct Agent Loop
-def run_autonomous_agent(task: str, model_key: str = "auto", max_steps: int = 6):
-    actual_model = auto_choose_model(task) if model_key == "auto" else model_key
+def run_autonomous_agent(task: str, model_key: str = "auto", max_steps: int = 8):
+    if model_key == "auto":
+        actual_model, route_reason = micro_model_route(task)
+    else:
+        actual_model, route_reason = model_key, "Manual user selection"
     cfg = MODEL_ROSTER.get(actual_model, MODEL_ROSTER["gemma"])
 
     print("=" * 70)
     print("  MAPLE Autonomous Agent Harness")
     print(f"  Task: {task}")
     print(f"  Assigned Model: {cfg['name']} ({cfg['role']})")
+    print(f"  Router Reason:  {route_reason}")
     print("=" * 70)
 
+    rules_text = load_agent_rules()
     system_prompt = (
-        f"You are an autonomous engineering agent operating with local system tools.\n"
+        f"You are an autonomous engineering agent operating with local & web tools.\n"
         f"Role: {cfg['role']}\n"
+        f"{rules_text}\n"
         f"{TOOL_SCHEMAS}\n"
-        f"Rules:\n"
-        f"1. To execute work, write TOOL: <name> followed by ARGS: <json>.\n"
+        f"Execution Protocol:\n"
+        f"1. To execute work, output TOOL: <name> followed by ARGS: <json>.\n"
         f"2. After tools execute, inspect their outputs and decide the next step.\n"
         f"3. Only when all tool results have been observed and the task is accomplished, output 'FINAL ANSWER:' followed by your concise report.\n"
         f"4. Ban placeholders. Write complete, working solutions."
     )
 
-    conversation_history = f"TASK GOAL: {task}\n"
+    files_touched = []
+    recent_steps = []
 
     for step in range(1, max_steps + 1):
         print(f"\n>>> [Step {step}/{max_steps}] Thinking with {actual_model}...")
-        prompt = conversation_history + "\nWhat is your next action?"
+        mem_block = [f"GOAL: {task}"]
+        if files_touched:
+            mem_block.append("FILES_TOUCHED: " + ", ".join(files_touched[-10:]))
+        if recent_steps:
+            mem_block.append("RECENT STEPS (compact):")
+            mem_block.extend(recent_steps[-2:])
+        prompt = "\n".join(mem_block) + f"\n\n[Step {step}/{max_steps}] What is your next action?"
         response = query_model(actual_model, prompt=prompt, system=system_prompt, stream=True)
 
         # Check for tool invocations (support one or multiple tool calls per turn)
         tool_matches = list(re.finditer(r"TOOL:\s*(\w+)\s*\nARGS:\s*({.*?})", response, re.DOTALL))
         executed_any_tool = False
+        step_observations = []
         for tool_match in tool_matches:
             tool_name = tool_match.group(1).strip()
             args_raw = tool_match.group(2).strip()
@@ -633,11 +810,19 @@ def run_autonomous_agent(task: str, model_key: str = "auto", max_steps: int = 6)
                     result = tool_func(**args)
                 except Exception as e:
                     result = {"error": str(e)}
-                print(f"[< Result]: {json.dumps(result)[:200]}...")
-                conversation_history += f"\nACTION TAKEN: {tool_name} with {args}\nRESULT: {json.dumps(result)}\n"
+                res_json = json.dumps(result)
+                print(f"[< Result]: {res_json[:200]}...")
+                if tool_name in ("write_file", "edit_file", "read_file") and isinstance(args.get("path"), str):
+                    p = args["path"]
+                    if p not in files_touched:
+                        files_touched.append(p)
+                step_observations.append(f"- {tool_name}({json.dumps(args)[:180]}) -> {res_json[:1200]}")
             else:
                 print(f"[!] Unknown tool: {tool_name}")
-                conversation_history += f"\nERROR: Unknown tool '{tool_name}'\n"
+                step_observations.append(f"- ERROR: Unknown tool '{tool_name}'")
+
+        if step_observations:
+            recent_steps.append(f"Step {step}:\n" + "\n".join(step_observations))
 
         if not executed_any_tool and ("FINAL ANSWER:" in response or "DONE" in response):
             print("\n[+] Task goal completed!")

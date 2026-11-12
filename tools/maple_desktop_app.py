@@ -35,15 +35,15 @@ import openpyxl
 from pptx import Presentation
 import requests
 import markdown
-from PySide6.QtCore import Qt, QThread, Signal, QTimer, QDir, QRegularExpression
+from PySide6.QtCore import Qt, QThread, Signal, QTimer, QDir, QRegularExpression, QFileSystemWatcher
 from PySide6.QtGui import (
     QFont, QColor, QTextCharFormat, QSyntaxHighlighter, QAction, QTextCursor
 )
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QSplitter, QTreeView, QFileSystemModel, QTextBrowser, QPlainTextEdit,
-    QPushButton, QComboBox, QLabel, QProgressBar, QTabWidget, QLineEdit,
-    QFileDialog, QFrame
+    QPushButton, QButtonGroup, QLabel, QProgressBar, QTabWidget, QLineEdit,
+    QFileDialog, QFrame, QGraphicsDropShadowEffect, QSizePolicy
 )
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -55,6 +55,8 @@ from local_agent_harness import (
     DEFAULT_BONSAI_API,
     Tools,
     auto_choose_model,
+    micro_model_route,
+    load_agent_rules,
     ensure_vram_for_model,
 )
 
@@ -242,81 +244,186 @@ class DocumentRenderer:
 
 DARK_STYLESHEET = """
 QMainWindow, QWidget {
-    background-color: #0b0f14;
+    background-color: #090c12;
     color: #e6edf3;
-    font-family: "Segoe UI", sans-serif;
+    font-family: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
     font-size: 13px;
 }
 QFrame#TopBar {
-    background-color: #111722;
-    border-bottom: 1px solid #232f42;
+    background-color: #0e141f;
+    border: 1px solid #1e293b;
+    border-radius: 14px;
+    margin: 8px 10px 4px 10px;
 }
-QComboBox, QLineEdit, QPlainTextEdit, QTextBrowser, QTreeView {
-    background-color: #111722;
+QFrame#PaneCard {
+    background-color: #0e141f;
+    border: 1px solid #1e293b;
+    border-radius: 14px;
+}
+QLineEdit, QPlainTextEdit, QTextBrowser, QTreeView {
+    background-color: #0b1018;
     color: #e6edf3;
-    border: 1px solid #232f42;
+    border: 1px solid #1e293b;
+    border-radius: 12px;
+    padding: 8px 10px;
+    selection-background-color: #1e3a5f;
+    selection-color: #ffffff;
+}
+QLineEdit:focus, QPlainTextEdit:focus {
+    border: 1px solid #38bdf8;
+}
+QTreeView {
+    padding: 6px;
+    outline: none;
+}
+QTreeView::item {
+    padding: 4px 6px;
     border-radius: 6px;
-    padding: 4px 8px;
+}
+QTreeView::item:hover {
+    background-color: #162032;
 }
 QTreeView::item:selected {
-    background-color: #1f334d;
+    background-color: #1a3350;
     color: #38bdf8;
 }
 QPushButton {
-    background-color: #161e2c;
-    color: #e6edf3;
-    border: 1px solid #232f42;
-    border-radius: 6px;
+    background-color: #141c2b;
+    color: #cbd5e1;
+    border: 1px solid #233044;
+    border-radius: 10px;
     padding: 6px 14px;
     font-weight: 600;
 }
 QPushButton:hover {
     border-color: #38bdf8;
+    color: #ffffff;
+}
+QPushButton#PillBtn {
+    background-color: #111827;
+    color: #94a3b8;
+    border: 1px solid #1e293b;
+    border-radius: 14px;
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+QPushButton#PillBtn:hover {
+    color: #e2e8f0;
+    border-color: #334155;
+}
+QPushButton#PillBtn:checked {
+    background-color: #0ea5e9;
+    color: #04101c;
+    border: 1px solid #38bdf8;
+}
+QPushButton#ModePill {
+    background-color: #111827;
+    color: #94a3b8;
+    border: 1px solid #1e293b;
+    border-radius: 14px;
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+QPushButton#ModePill:checked {
+    background-color: #10b981;
+    color: #04150e;
+    border: 1px solid #34d399;
 }
 QPushButton#RunBtn {
-    background-color: #38bdf8;
-    color: #071019;
+    background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #38bdf8, stop:1 #0284c7);
+    color: #04101c;
     border: none;
+    border-radius: 12px;
+    padding: 8px 18px;
+    font-weight: 700;
+}
+QPushButton#RunBtn:hover {
+    background-color: #7dd3fc;
 }
 QPushButton#RunBtn:disabled {
-    background-color: #1e3a4c;
-    color: #6b7c93;
+    background-color: #1e293b;
+    color: #64748b;
 }
 QPushButton#StopBtn {
-    background-color: #3b1820;
+    background-color: #2a1218;
     color: #fca5a5;
     border: 1px solid #7f1d1d;
+    border-radius: 12px;
+    padding: 7px 16px;
 }
 QTabWidget::pane {
-    border: 1px solid #232f42;
-    border-radius: 6px;
-    background-color: #0d121a;
+    border: 1px solid #1e293b;
+    border-radius: 14px;
+    background-color: #0b1018;
+    top: -1px;
 }
 QTabBar::tab {
-    background-color: #111722;
-    color: #8b9bb4;
-    border: 1px solid #232f42;
-    padding: 6px 14px;
-    margin-right: 2px;
-    border-top-left-radius: 6px;
-    border-top-right-radius: 6px;
+    background-color: #0e141f;
+    color: #94a3b8;
+    border: 1px solid #1e293b;
+    padding: 7px 16px;
+    margin-right: 4px;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    font-weight: 600;
 }
 QTabBar::tab:selected {
-    background-color: #161e2c;
+    background-color: #141d2d;
     color: #10b981;
-    border-bottom-color: #10b981;
+    border-bottom: 2px solid #10b981;
 }
 QProgressBar {
     background-color: #090d12;
-    border: 1px solid #232f42;
-    border-radius: 5px;
+    border: 1px solid #1e293b;
+    border-radius: 10px;
     text-align: center;
     color: #e6edf3;
     font-size: 11px;
+    font-weight: 600;
+    height: 22px;
 }
 QProgressBar::chunk {
-    background-color: #10b981;
+    background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #10b981, stop:1 #38bdf8);
+    border-radius: 9px;
+}
+QSplitter::handle {
+    background-color: transparent;
+    width: 6px;
+}
+QScrollBar:vertical {
+    background: transparent;
+    width: 8px;
+    margin: 4px 0;
+}
+QScrollBar::handle:vertical {
+    background: #233044;
     border-radius: 4px;
+    min-height: 24px;
+}
+QScrollBar::handle:vertical:hover {
+    background: #38bdf8;
+}
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical,
+QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+    background: none;
+    height: 0px;
+}
+QScrollBar:horizontal {
+    background: transparent;
+    height: 8px;
+    margin: 0 4px;
+}
+QScrollBar::handle:horizontal {
+    background: #233044;
+    border-radius: 4px;
+    min-width: 24px;
+}
+QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal,
+QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
+    background: none;
+    width: 0px;
 }
 """
 
@@ -383,7 +490,7 @@ class CodeAndDiffHighlighter(QSyntaxHighlighter):
 class AgentWorker(QThread):
     """Background worker thread running model inference and local tool execution."""
 
-    model_selected = Signal(str, str, str)
+    model_selected = Signal(str, str, str, str)
     step_started = Signal(int, int)
     token_received = Signal(str)
     file_written = Signal(str, str)
@@ -493,40 +600,56 @@ class AgentWorker(QThread):
 
     def run(self):
         try:
-            chosen = auto_choose_model(self.prompt) if self.model_key == "auto" else self.model_key
+            if self.model_key == "auto":
+                chosen, route_reason = micro_model_route(self.prompt)
+            else:
+                chosen, route_reason = self.model_key, "Manual selection"
             if chosen not in MODEL_ROSTER:
                 chosen = "gemma"
             cfg = MODEL_ROSTER[chosen]
-            self.model_selected.emit(chosen, cfg["name"], cfg["role"])
+            self.model_selected.emit(chosen, cfg["name"], cfg["role"], route_reason)
 
+            rules_text = load_agent_rules()
             if self.mode == "chat":
-                self._stream_llm(chosen, self.prompt)
+                self._stream_llm(chosen, self.prompt, system=rules_text)
                 self.finished_run.emit()
                 return
 
             system_prompt = (
                 f"You are an autonomous engineering agent operating in working directory: {self.workdir}\n"
                 f"Role: {cfg['role']}\n"
+                f"{rules_text}\n"
                 f"{TOOL_SCHEMAS}\n"
-                f"Rules:\n"
+                f"Execution Protocol:\n"
                 f"1. To execute work, write TOOL: <name> followed by ARGS: <json>.\n"
                 f"2. After tools execute, inspect their outputs and decide the next step.\n"
                 f"3. Only when all tool results have been observed and the task is accomplished, output 'FINAL ANSWER:' followed by your concise report.\n"
                 f"4. Ban placeholders. Write complete, working solutions."
             )
-            history = f"TASK GOAL: {self.prompt}\n"
-            max_steps = 6
+            files_touched = []
+            recent_steps = []
+            max_steps = 8
 
             for step in range(1, max_steps + 1):
                 if self._stop_flag:
                     break
                 self.step_started.emit(step, max_steps)
-                response_text = self._stream_llm(chosen, history + "\nWhat is your next action?", system=system_prompt)
+
+                mem_lines = [f"GOAL: {self.prompt}"]
+                if files_touched:
+                    mem_lines.append("FILES_TOUCHED: " + ", ".join(files_touched[-10:]))
+                if recent_steps:
+                    mem_lines.append("RECENT STEPS (compact):")
+                    mem_lines.extend(recent_steps[-2:])
+                step_prompt = "\n".join(mem_lines) + f"\n\n[Step {step}/{max_steps}] What is your next action?"
+
+                response_text = self._stream_llm(chosen, step_prompt, system=system_prompt)
                 if self._stop_flag:
                     break
 
                 tool_matches = list(re.finditer(r"TOOL:\s*(\w+)\s*\nARGS:\s*({.*?})", response_text, re.DOTALL))
                 executed_any = False
+                step_obs = []
 
                 for m in tool_matches:
                     tool_name = m.group(1).strip()
@@ -536,7 +659,7 @@ class AgentWorker(QThread):
                         args = {}
 
                     if tool_name not in TOOL_REGISTRY:
-                        history += f"\nERROR: Unknown tool '{tool_name}'\n"
+                        step_obs.append(f"- ERROR: Unknown tool '{tool_name}'")
                         continue
 
                     executed_any = True
@@ -547,6 +670,8 @@ class AgentWorker(QThread):
                         with open(fpath, "w", encoding="utf-8") as f:
                             f.write(content)
                         result = {"success": True, "path": fpath, "bytes_written": len(content)}
+                        if fpath not in files_touched:
+                            files_touched.append(fpath)
                         self.file_written.emit(fpath, content)
 
                     elif tool_name == "edit_file":
@@ -572,6 +697,8 @@ class AgentWorker(QThread):
                                     lineterm=""
                                 ))
                                 result = {"success": True, "path": fpath}
+                                if fpath not in files_touched:
+                                    files_touched.append(fpath)
                                 self.file_edited.emit(fpath, diff_str, new_data)
 
                     elif tool_name == "read_file":
@@ -581,9 +708,13 @@ class AgentWorker(QThread):
                         else:
                             with open(fpath, "r", encoding="utf-8", errors="replace") as f:
                                 lines = f.readlines()
-                            raw_txt = "".join(lines)
-                            result = {"path": fpath, "total_lines": len(lines), "content": raw_txt[:8000]}
-                            self.file_read.emit(fpath, raw_txt, len(lines))
+                            start_l = max(1, int(args.get("start_line", 1)))
+                            end_l = min(len(lines), int(args.get("end_line", min(len(lines), start_l + 149))))
+                            raw_txt = "".join(lines[start_l - 1:end_l])
+                            result = {"path": fpath, "start_line": start_l, "end_line": end_l, "total_lines": len(lines), "content": raw_txt[:4000]}
+                            if fpath not in files_touched:
+                                files_touched.append(fpath)
+                            self.file_read.emit(fpath, "".join(lines), len(lines))
 
                     elif tool_name == "run_command":
                         cmd = args.get("cmd", "")
@@ -598,9 +729,17 @@ class AgentWorker(QThread):
                         self.cmd_executed.emit("PYTHON", code.splitlines()[0][:80] if code else "", result.get("exit_code", -1), out_txt)
 
                     else:
-                        result = TOOL_REGISTRY[tool_name](**args)
+                        try:
+                            result = TOOL_REGISTRY[tool_name](**args)
+                        except Exception as ex:
+                            result = {"error": str(ex)}
+                        if tool_name in ("web_search", "fetch_url", "search_files"):
+                            self.cmd_executed.emit(tool_name.upper(), json.dumps(args)[:90], 0, json.dumps(result, indent=2)[:1500])
 
-                    history += f"\nACTION TAKEN: {tool_name} with {args}\nRESULT: {json.dumps(result)}\n"
+                    step_obs.append(f"- {tool_name}({json.dumps(args)[:160]}) -> {json.dumps(result)[:1200]}")
+
+                if step_obs:
+                    recent_steps.append(f"Step {step}:\n" + "\n".join(step_obs))
 
                 if not executed_any and ("FINAL ANSWER:" in response_text or "DONE" in response_text):
                     break
@@ -623,66 +762,111 @@ class MapleDesktopWindow(QMainWindow):
         self.current_stream_buf = ""
         self.active_file_path = ""
         self.active_file_content = ""
+        self.selected_model_key = "auto"
+        self.selected_mode = "task"
+        self._anim_lines = []
+        self._anim_idx = 0
+        self._anim_timer = QTimer(self)
+        self._anim_timer.setInterval(12)
+        self._anim_timer.timeout.connect(self._tick_live_edit_anim)
+
+        self.fs_watcher = QFileSystemWatcher(self)
+        self.fs_watcher.fileChanged.connect(self._on_watched_file_changed)
 
         self._build_ui()
         self._start_vram_timer()
+
+    def _apply_shadow(self, widget: QWidget):
+        shadow = QGraphicsDropShadowEffect(self)
+        shadow.setBlurRadius(22)
+        shadow.setOffset(0, 4)
+        shadow.setColor(QColor(0, 0, 0, 120))
+        widget.setGraphicsEffect(shadow)
 
     def _build_ui(self):
         central = QWidget()
         self.setCentralWidget(central)
         root_layout = QVBoxLayout(central)
-        root_layout.setContentsMargins(0, 0, 0, 0)
-        root_layout.setSpacing(0)
+        root_layout.setContentsMargins(0, 0, 0, 8)
+        root_layout.setSpacing(6)
 
-        # Top Bar
+        # Top Bar (Rounded Card)
         top_bar = QFrame()
         top_bar.setObjectName("TopBar")
+        self._apply_shadow(top_bar)
         top_layout = QHBoxLayout(top_bar)
-        top_layout.setContentsMargins(12, 8, 12, 8)
+        top_layout.setContentsMargins(14, 10, 14, 10)
         top_layout.setSpacing(10)
 
-        title_lbl = QLabel("MAPLE Desktop Harness")
-        title_lbl.setStyleSheet("font-weight: 700; font-size: 15px; color: #38bdf8;")
+        title_lbl = QLabel("MAPLE")
+        title_lbl.setStyleSheet("font-weight: 800; font-size: 16px; color: #38bdf8; letter-spacing: 1px;")
         top_layout.addWidget(title_lbl)
 
-        top_layout.addWidget(QLabel("Model:"))
-        self.model_combo = QComboBox()
-        self.model_combo.addItem("Auto Chooser (Recommended)", "auto")
-        self.model_combo.addItem("DeepSeek 54-Exp (Systems/C++)", "deepseek")
-        self.model_combo.addItem("Gemma 4 26B (General/Web)", "gemma")
-        self.model_combo.addItem("Bonsai 27B (Reasoning/Decisions)", "bonsai")
-        self.model_combo.addItem("Fast 1.5B (Triage/Commits)", "fast")
-        top_layout.addWidget(self.model_combo)
+        # Segmented Model Pills
+        self.model_group = QButtonGroup(self)
+        self.model_group.setExclusive(True)
+        model_pills = [
+            ("Auto 0.5B", "auto"),
+            ("DeepSeek", "deepseek"),
+            ("Gemma 4", "gemma"),
+            ("Bonsai 27B", "bonsai"),
+            ("Fast 1.5B", "fast"),
+        ]
+        for label, key in model_pills:
+            btn = QPushButton(label)
+            btn.setObjectName("PillBtn")
+            btn.setCheckable(True)
+            if key == "auto":
+                btn.setChecked(True)
+            btn.clicked.connect(lambda checked, k=key: setattr(self, "selected_model_key", k))
+            self.model_group.addButton(btn)
+            top_layout.addWidget(btn)
 
-        top_layout.addWidget(QLabel("Mode:"))
-        self.mode_combo = QComboBox()
-        self.mode_combo.addItem("Agent Task (Tools)", "task")
-        self.mode_combo.addItem("Direct Chat", "chat")
-        top_layout.addWidget(self.mode_combo)
+        # Segmented Mode Pills
+        self.mode_group = QButtonGroup(self)
+        self.mode_group.setExclusive(True)
+        for label, mode_val in [("Agent Task", "task"), ("Direct Chat", "chat")]:
+            btn = QPushButton(label)
+            btn.setObjectName("ModePill")
+            btn.setCheckable(True)
+            if mode_val == "task":
+                btn.setChecked(True)
+            btn.clicked.connect(lambda checked, m=mode_val: setattr(self, "selected_mode", m))
+            self.mode_group.addButton(btn)
+            top_layout.addWidget(btn)
 
-        top_layout.addWidget(QLabel("Workdir:"))
         self.workdir_edit = QLineEdit(self.workdir)
-        self.workdir_edit.setMinimumWidth(200)
-        top_layout.addWidget(self.workdir_edit)
+        self.workdir_edit.setMinimumWidth(180)
+        self.workdir_edit.setPlaceholderText("Working directory...")
+        top_layout.addWidget(self.workdir_edit, 1)
 
-        browse_btn = QPushButton("Browse")
+        browse_btn = QPushButton("Folder")
         browse_btn.clicked.connect(self._choose_workdir)
         top_layout.addWidget(browse_btn)
-
-        top_layout.addStretch(1)
 
         self.vram_bar = QProgressBar()
         self.vram_bar.setRange(0, 6141)
         self.vram_bar.setFormat("VRAM: %v / %m MiB")
-        self.vram_bar.setFixedWidth(180)
+        self.vram_bar.setFixedWidth(165)
         top_layout.addWidget(self.vram_bar)
 
         root_layout.addWidget(top_bar)
 
         # 3-Pane Splitter
         splitter = QSplitter(Qt.Horizontal)
+        splitter.setContentsMargins(10, 2, 10, 2)
 
-        # Left Pane: Workspace File Tree
+        # Left Pane Card: Workspace File Tree
+        left_card = QFrame()
+        left_card.setObjectName("PaneCard")
+        self._apply_shadow(left_card)
+        left_lay = QVBoxLayout(left_card)
+        left_lay.setContentsMargins(8, 8, 8, 8)
+        left_lay.setSpacing(6)
+        tree_hdr = QLabel("WORKSPACE")
+        tree_hdr.setStyleSheet("color: #64748b; font-size: 11px; font-weight: 700; letter-spacing: 1px; padding-left: 4px;")
+        left_lay.addWidget(tree_hdr)
+
         self.fs_model = QFileSystemModel()
         self.fs_model.setRootPath(self.workdir)
         self.tree = QTreeView()
@@ -692,30 +876,38 @@ class MapleDesktopWindow(QMainWindow):
             self.tree.hideColumn(col)
         self.tree.setHeaderHidden(True)
         self.tree.clicked.connect(self._on_tree_clicked)
-        splitter.addWidget(self.tree)
+        left_lay.addWidget(self.tree, 1)
+        splitter.addWidget(left_card)
 
-        # Center Pane: Chat & Prompt
-        center_widget = QWidget()
+        # Center Pane Card: Chat & Prompt
+        center_widget = QFrame()
+        center_widget.setObjectName("PaneCard")
+        self._apply_shadow(center_widget)
         center_layout = QVBoxLayout(center_widget)
-        center_layout.setContentsMargins(8, 8, 8, 8)
+        center_layout.setContentsMargins(10, 10, 10, 10)
         center_layout.setSpacing(8)
 
-        self.active_model_badge = QLabel("Ready | Auto Model Chooser active")
-        self.active_model_badge.setStyleSheet("color: #8b9bb4; font-family: 'Cascadia Code', Consolas, monospace; font-size: 11.5px;")
+        self.active_model_badge = QLabel("Router (qwen2.5:0.5b CPU) | Ready")
+        self.active_model_badge.setStyleSheet(
+            "background-color: #111827; color: #38bdf8; border: 1px solid #1e293b; "
+            "border-radius: 10px; padding: 5px 10px; font-family: 'Cascadia Code', Consolas, monospace; font-size: 11.5px;"
+        )
         center_layout.addWidget(self.active_model_badge)
 
         self.chat_view = QTextBrowser()
         self.chat_view.setOpenExternalLinks(True)
-        self.chat_view.setHtml(self._wrap_html("<p><b>MAPLE Local Agent Desktop Ready.</b><br>Ask a coding/architecture question or give an autonomous file task.</p>"))
+        self.chat_view.setHtml(self._wrap_html("<p><b>MAPLE Local Agent Desktop Ready.</b><br>Micro-router (0.5B CPU), persistent rules, web search, and live document rendering active.</p>"))
         center_layout.addWidget(self.chat_view, 1)
 
         input_row = QHBoxLayout()
+        input_row.setSpacing(8)
         self.prompt_input = QPlainTextEdit()
         self.prompt_input.setPlaceholderText("Enter prompt or autonomous task... (Ctrl+Enter to run)")
-        self.prompt_input.setFixedHeight(78)
+        self.prompt_input.setFixedHeight(80)
         input_row.addWidget(self.prompt_input, 1)
 
         btn_col = QVBoxLayout()
+        btn_col.setSpacing(6)
         self.run_btn = QPushButton("Run")
         self.run_btn.setObjectName("RunBtn")
         self.run_btn.clicked.connect(self._start_run)
@@ -730,7 +922,12 @@ class MapleDesktopWindow(QMainWindow):
 
         splitter.addWidget(center_widget)
 
-        # Right Pane: Live Code / Diff + Rendered View + Terminal Log
+        # Right Pane Card: Live Code / Diff + Rendered View + Terminal Log
+        right_card = QFrame()
+        right_card.setObjectName("PaneCard")
+        self._apply_shadow(right_card)
+        right_lay = QVBoxLayout(right_card)
+        right_lay.setContentsMargins(8, 8, 8, 8)
         self.right_tabs = QTabWidget()
 
         self.code_editor = QPlainTextEdit()
@@ -748,8 +945,9 @@ class MapleDesktopWindow(QMainWindow):
         self.terminal_log.setFont(QFont("Cascadia Code", 10))
         self.right_tabs.addTab(self.terminal_log, "Terminal / Tools")
 
-        splitter.addWidget(self.right_tabs)
-        splitter.setSizes([230, 620, 590])
+        right_lay.addWidget(self.right_tabs, 1)
+        splitter.addWidget(right_card)
+        splitter.setSizes([240, 620, 600])
 
         root_layout.addWidget(splitter, 1)
 
@@ -802,10 +1000,61 @@ class MapleDesktopWindow(QMainWindow):
                 except Exception:
                     pass
 
-    def _show_file_in_right_pane(self, path: str, content: str):
+    def _watch_active_file(self, path: str):
+        existing = self.fs_watcher.files()
+        if existing:
+            self.fs_watcher.removePaths(existing)
+        if path and os.path.isfile(path):
+            self.fs_watcher.addPath(path)
+
+    def _on_watched_file_changed(self, path: str):
+        if path != self.active_file_path or not os.path.isfile(path):
+            return
+        lower = path.lower()
+        if lower.endswith((".pdf", ".xlsx", ".xlsm", ".pptx", ".png", ".jpg", ".jpeg", ".webp", ".bmp")):
+            self._show_file_in_right_pane(path, f"[Binary document: {os.path.basename(path)}]")
+        else:
+            try:
+                with open(path, "r", encoding="utf-8", errors="replace") as f:
+                    content = f.read()
+                if content != self.active_file_content:
+                    self._show_file_in_right_pane(path, content, animate=False)
+            except Exception:
+                pass
+        if os.path.isfile(path) and path not in self.fs_watcher.files():
+            self.fs_watcher.addPath(path)
+
+    def _start_live_edit_anim(self, text: str):
+        self._anim_timer.stop()
+        lines = text.splitlines()
+        if len(lines) <= 2 or len(lines) > 400:
+            self.code_editor.setPlainText(text)
+            return
+        self._anim_lines = lines
+        self._anim_idx = 0
+        self.code_editor.clear()
+        self._anim_timer.start()
+
+    def _tick_live_edit_anim(self):
+        if self._anim_idx >= len(self._anim_lines):
+            self._anim_timer.stop()
+            return
+        batch_end = min(len(self._anim_lines), self._anim_idx + 4)
+        chunk = "\n".join(self._anim_lines[self._anim_idx:batch_end])
+        self.code_editor.appendPlainText(chunk)
+        self._anim_idx = batch_end
+        sb = self.code_editor.verticalScrollBar()
+        sb.setValue(sb.maximum())
+
+    def _show_file_in_right_pane(self, path: str, content: str, animate: bool = False):
         self.active_file_path = path
         self.active_file_content = content
-        self.code_editor.setPlainText(content)
+        self._watch_active_file(path)
+        if animate:
+            self._start_live_edit_anim(content)
+        else:
+            self._anim_timer.stop()
+            self.code_editor.setPlainText(content)
         self.right_tabs.setTabText(0, f"Live File: {os.path.basename(path)}")
         lower = path.lower()
         rendered_html = DocumentRenderer.render_file(path, None if lower.endswith((".pdf", ".xlsx", ".xlsm", ".pptx", ".png", ".jpg", ".jpeg", ".webp", ".bmp")) else content)
@@ -851,8 +1100,8 @@ class MapleDesktopWindow(QMainWindow):
 
         self.worker = AgentWorker(
             prompt=prompt,
-            model_key=self.model_combo.currentData(),
-            mode=self.mode_combo.currentData(),
+            model_key=self.selected_model_key,
+            mode=self.selected_mode,
             workdir=self.workdir,
         )
         self.worker.model_selected.connect(self._on_model_selected)
@@ -872,8 +1121,8 @@ class MapleDesktopWindow(QMainWindow):
             self.worker.stop()
             self.active_model_badge.setText("Stopping...")
 
-    def _on_model_selected(self, key: str, name: str, role: str):
-        self.active_model_badge.setText(f"Active: {key.upper()} ({name}) | {role}")
+    def _on_model_selected(self, key: str, name: str, role: str, reason: str):
+        self.active_model_badge.setText(f"Active: {key.upper()} ({name}) | Router: {reason}")
 
     def _on_step_started(self, step: int, max_steps: int):
         if self.current_stream_buf:
@@ -887,15 +1136,16 @@ class MapleDesktopWindow(QMainWindow):
         self._refresh_chat_html()
 
     def _on_file_written(self, path: str, content: str):
-        self._show_file_in_right_pane(path, content)
-        self.right_tabs.setCurrentIndex(0)
+        self._show_file_in_right_pane(path, content, animate=True)
+        self.right_tabs.setCurrentIndex(1 if DocumentRenderer.is_rich_doc(path) else 0)
         self.chat_markdown_blocks.append(f'<div class="tool-box">WRITE FILE: {path} ({len(content)} chars)</div>')
         self._refresh_chat_html()
 
     def _on_file_edited(self, path: str, diff_str: str, new_content: str):
         self.active_file_path = path
         self.active_file_content = new_content
-        self.code_editor.setPlainText(diff_str or new_content)
+        self._watch_active_file(path)
+        self._start_live_edit_anim(diff_str or new_content)
         self.right_tabs.setTabText(0, f"Diff: {os.path.basename(path)}")
         rendered_html = DocumentRenderer.render_file(path, new_content)
         self.rendered_view.setHtml(rendered_html if path.lower().endswith((".html", ".htm")) else self._wrap_html(rendered_html))
