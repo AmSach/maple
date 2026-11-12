@@ -20,11 +20,19 @@ Author: Aman Sachan (amansachan92905@gmail.com)
 import sys
 import os
 import re
+import csv
 import json
 import time
+import base64
+import shutil
 import difflib
+import tempfile
+import subprocess
 from typing import Optional, Dict, Any
 
+import fitz
+import openpyxl
+from pptx import Presentation
 import requests
 import markdown
 from PySide6.QtCore import Qt, QThread, Signal, QTimer, QDir, QRegularExpression
@@ -49,6 +57,188 @@ from local_agent_harness import (
     auto_choose_model,
     ensure_vram_for_model,
 )
+
+class DocumentRenderer:
+    """Renders PDF, Excel/CSV, PowerPoint (PPTX), LaTeX (TEX), Images, Markdown, and HTML to rich Qt HTML."""
+
+    @staticmethod
+    def _esc(s: Any) -> str:
+        return str(s).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+    @staticmethod
+    def render_pdf(path: str, max_pages: int = 25) -> str:
+        doc = fitz.open(path)
+        total = len(doc)
+        parts = [f"<h3>PDF Document: {DocumentRenderer._esc(os.path.basename(path))} ({total} pages)</h3>"]
+        for i in range(min(total, max_pages)):
+            page = doc.load_page(i)
+            pix = page.get_pixmap(matrix=fitz.Matrix(1.4, 1.4))
+            b64 = base64.b64encode(pix.tobytes("png")).decode("ascii")
+            parts.append(
+                f'<div style="margin:12px 0; padding:8px; background:#090d12; border:1px solid #232f42; border-radius:8px;">'
+                f'<div style="color:#8b9bb4; font-size:11px; margin-bottom:6px;">Page {i + 1} / {total}</div>'
+                f'<img src="data:image/png;base64,{b64}" style="max-width:100%;" />'
+                f'</div>'
+            )
+        if total > max_pages:
+            parts.append(f"<p><i>Showing first {max_pages} of {total} pages.</i></p>")
+        doc.close()
+        return "".join(parts)
+
+    @staticmethod
+    def render_excel(path: str, max_rows: int = 200, max_cols: int = 25) -> str:
+        lower = path.lower()
+        parts = [f"<h3>Spreadsheet: {DocumentRenderer._esc(os.path.basename(path))}</h3>"]
+        if lower.endswith(".csv"):
+            with open(path, "r", encoding="utf-8", errors="replace", newline="") as f:
+                rows = list(csv.reader(f))
+            parts.append(DocumentRenderer._rows_to_table("CSV", rows, max_rows, max_cols))
+            return "".join(parts)
+
+        wb = openpyxl.load_workbook(path, data_only=True, read_only=True)
+        for name in wb.sheetnames:
+            ws = wb[name]
+            rows = []
+            for idx, row in enumerate(ws.iter_rows(values_only=True)):
+                if idx >= max_rows:
+                    break
+                rows.append(["" if c is None else str(c) for c in row[:max_cols]])
+            parts.append(DocumentRenderer._rows_to_table(name, rows, max_rows, max_cols))
+        wb.close()
+        return "".join(parts)
+
+    @staticmethod
+    def _rows_to_table(sheet_name: str, rows: list, max_rows: int, max_cols: int) -> str:
+        html = [f'<h4 style="color:#10b981; margin-top:14px;">Sheet: {DocumentRenderer._esc(sheet_name)}</h4>']
+        html.append('<table border="1" cellspacing="0" cellpadding="5" style="border-collapse:collapse; border-color:#232f42; font-size:12px; width:100%;">')
+        for r_idx, row in enumerate(rows[:max_rows]):
+            bg = "#161e2c" if r_idx == 0 else ("#111722" if r_idx % 2 == 1 else "#0d121a")
+            tag = "th" if r_idx == 0 else "td"
+            html.append(f'<tr style="background:{bg};">')
+            for cell in row[:max_cols]:
+                html.append(f'<{tag} style="border:1px solid #232f42; padding:4px 8px; text-align:left;">{DocumentRenderer._esc(cell)}</{tag}>')
+            html.append("</tr>")
+        html.append("</table>")
+        return "".join(html)
+
+    @staticmethod
+    def render_pptx(path: str) -> str:
+        prs = Presentation(path)
+        total = len(prs.slides)
+        parts = [f"<h3>Presentation: {DocumentRenderer._esc(os.path.basename(path))} ({total} slides)</h3>"]
+        for idx, slide in enumerate(prs.slides, start=1):
+            title = slide.shapes.title.text.strip() if (slide.shapes.title and slide.shapes.title.has_text_frame) else f"Slide {idx}"
+            card = [
+                f'<div style="margin:14px 0; padding:14px; background:#0d131d; border:1px solid #2d3d54; border-left:4px solid #38bdf8; border-radius:8px;">',
+                f'<div style="color:#8b9bb4; font-size:11px; margin-bottom:4px;">SLIDE {idx} / {total}</div>',
+                f'<h3 style="color:#ffffff; margin:0 0 8px 0;">{DocumentRenderer._esc(title)}</h3>',
+            ]
+            for shape in slide.shapes:
+                if shape == slide.shapes.title:
+                    continue
+                if shape.has_text_frame:
+                    for p in shape.text_frame.paragraphs:
+                        txt = p.text.strip()
+                        if txt:
+                            indent = "&nbsp;&nbsp;" * (p.level or 0)
+                            card.append(f'<div style="margin:3px 0; color:#e6edf3;">{indent}- {DocumentRenderer._esc(txt)}</div>')
+                if shape.has_table:
+                    t_rows = [[cell.text.strip() for cell in row.cells] for row in shape.table.rows]
+                    card.append(DocumentRenderer._rows_to_table(f"Slide {idx} Table", t_rows, 50, 15))
+                if shape.shape_type == 13:  # Picture
+                    try:
+                        img_bytes = shape.image.blob
+                        ctype = shape.image.content_type or "image/png"
+                        b64 = base64.b64encode(img_bytes).decode("ascii")
+                        card.append(f'<div style="margin:8px 0;"><img src="data:{ctype};base64,{b64}" style="max-width:95%;" /></div>')
+                    except Exception:
+                        pass
+            if slide.has_notes_slide and slide.notes_slide.notes_text_frame:
+                notes = slide.notes_slide.notes_text_frame.text.strip()
+                if notes:
+                    card.append(f'<div style="margin-top:8px; padding:6px; background:#090d12; color:#8b9bb4; font-size:11.5px; border-radius:4px;"><b>Notes:</b> {DocumentRenderer._esc(notes)}</div>')
+            card.append("</div>")
+            parts.append("".join(card))
+        return "".join(parts)
+
+    @staticmethod
+    def render_tex(path: str, tex_source: str) -> str:
+        compiler = shutil.which("pdflatex") or shutil.which("xelatex")
+        if compiler:
+            try:
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    tex_copy = os.path.join(tmpdir, "doc.tex")
+                    with open(tex_copy, "w", encoding="utf-8") as f:
+                        f.write(tex_source)
+                    proc = subprocess.run(
+                        [compiler, "-interaction=nonstopmode", "-output-directory", tmpdir, tex_copy],
+                        stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=20
+                    )
+                    pdf_out = os.path.join(tmpdir, "doc.pdf")
+                    if proc.returncode == 0 and os.path.exists(pdf_out):
+                        return DocumentRenderer.render_pdf(pdf_out)
+            except Exception:
+                pass
+
+        # Clean HTML fallback preview for LaTeX when compiler is not installed
+        html = [f"<h3>LaTeX Document Preview: {DocumentRenderer._esc(os.path.basename(path))}</h3>"]
+        title_m = re.search(r"\\title\{([^}]*)\}", tex_source)
+        if title_m:
+            html.append(f'<h2 style="color:#ffffff;">{DocumentRenderer._esc(title_m.group(1))}</h2>')
+        body_m = re.search(r"\\begin\{document\}(.*?)\\end\{document\}", tex_source, re.DOTALL)
+        body = body_m.group(1) if body_m else tex_source
+        body = DocumentRenderer._esc(body)
+        body = re.sub(r"\\section\*?\{([^}]*)\}", r'<h3 style="color:#38bdf8; margin-top:12px;">\1</h3>', body)
+        body = re.sub(r"\\subsection\*?\{([^}]*)\}", r'<h4 style="color:#10b981; margin-top:8px;">\1</h4>', body)
+        body = re.sub(r"\\textbf\{([^}]*)\}", r"<b>\1</b>", body)
+        body = re.sub(r"\\textit\{([^}]*)\}", r"<i>\1</i>", body)
+        body = re.sub(r"\$\$(.*?)\$\$", r'<div style="background:#090d12; padding:8px; margin:6px 0; border-left:3px solid #a78bfa; font-family:Consolas,monospace;">\1</div>', body, flags=re.DOTALL)
+        body = body.replace("\n\n", "<br><br>").replace("\n", "<br>")
+        html.append(f'<div style="padding:10px; background:#0d131d; border:1px solid #232f42; border-radius:6px;">{body}</div>')
+        return "".join(html)
+
+    @staticmethod
+    def render_image(path: str) -> str:
+        ext = os.path.splitext(path)[1].lower().lstrip(".") or "png"
+        if ext == "jpg":
+            ext = "jpeg"
+        with open(path, "rb") as f:
+            b64 = base64.b64encode(f.read()).decode("ascii")
+        return f'<h3>Image: {DocumentRenderer._esc(os.path.basename(path))}</h3><img src="data:image/{ext};base64,{b64}" style="max-width:100%;" />'
+
+    @staticmethod
+    def is_rich_doc(path: str) -> bool:
+        ext = os.path.splitext(path)[1].lower()
+        return ext in {".pdf", ".xlsx", ".xlsm", ".csv", ".pptx", ".tex", ".png", ".jpg", ".jpeg", ".webp", ".bmp", ".md", ".html", ".htm"}
+
+    @staticmethod
+    def render_file(path: str, text_content: Optional[str] = None) -> str:
+        lower = path.lower()
+        try:
+            if lower.endswith(".pdf"):
+                return DocumentRenderer.render_pdf(path)
+            if lower.endswith((".xlsx", ".xlsm", ".csv")):
+                return DocumentRenderer.render_excel(path)
+            if lower.endswith(".pptx"):
+                return DocumentRenderer.render_pptx(path)
+            if lower.endswith(".tex"):
+                if text_content is None:
+                    with open(path, "r", encoding="utf-8", errors="replace") as f:
+                        text_content = f.read()
+                return DocumentRenderer.render_tex(path, text_content)
+            if lower.endswith((".png", ".jpg", ".jpeg", ".webp", ".bmp")):
+                return DocumentRenderer.render_image(path)
+            if text_content is None:
+                with open(path, "r", encoding="utf-8", errors="replace") as f:
+                    text_content = f.read()
+            if lower.endswith(".md"):
+                return markdown.markdown(text_content, extensions=["fenced_code", "tables"])
+            if lower.endswith((".html", ".htm")):
+                return text_content
+            return f"<h3>{DocumentRenderer._esc(os.path.basename(path))}</h3><pre>{DocumentRenderer._esc(text_content)}</pre>"
+        except Exception as e:
+            return f"<p style='color:#ef4444;'>Failed to render {DocumentRenderer._esc(path)}: {DocumentRenderer._esc(e)}</p>"
+
 
 DARK_STYLESHEET = """
 QMainWindow, QWidget {
@@ -601,12 +791,16 @@ class MapleDesktopWindow(QMainWindow):
     def _on_tree_clicked(self, index):
         path = self.fs_model.filePath(index)
         if os.path.isfile(path):
-            try:
-                with open(path, "r", encoding="utf-8", errors="replace") as f:
-                    content = f.read()
-                self._show_file_in_right_pane(path, content)
-            except Exception:
-                pass
+            lower = path.lower()
+            if lower.endswith((".pdf", ".xlsx", ".xlsm", ".pptx", ".png", ".jpg", ".jpeg", ".webp", ".bmp")):
+                self._show_file_in_right_pane(path, f"[Binary document: {os.path.basename(path)}]")
+            else:
+                try:
+                    with open(path, "r", encoding="utf-8", errors="replace") as f:
+                        content = f.read()
+                    self._show_file_in_right_pane(path, content)
+                except Exception:
+                    pass
 
     def _show_file_in_right_pane(self, path: str, content: str):
         self.active_file_path = path
@@ -614,13 +808,13 @@ class MapleDesktopWindow(QMainWindow):
         self.code_editor.setPlainText(content)
         self.right_tabs.setTabText(0, f"Live File: {os.path.basename(path)}")
         lower = path.lower()
-        if lower.endswith(".md"):
-            html = markdown.markdown(content, extensions=["fenced_code", "tables"])
-            self.rendered_view.setHtml(self._wrap_html(html))
-        elif lower.endswith(".html") or lower.endswith(".htm"):
-            self.rendered_view.setHtml(content)
+        rendered_html = DocumentRenderer.render_file(path, None if lower.endswith((".pdf", ".xlsx", ".xlsm", ".pptx", ".png", ".jpg", ".jpeg", ".webp", ".bmp")) else content)
+        if lower.endswith((".html", ".htm")):
+            self.rendered_view.setHtml(rendered_html)
         else:
-            self.rendered_view.setHtml(self._wrap_html(f"<h3>{os.path.basename(path)}</h3><pre>{content.replace('<', '&lt;')}</pre>"))
+            self.rendered_view.setHtml(self._wrap_html(rendered_html))
+        if DocumentRenderer.is_rich_doc(path):
+            self.right_tabs.setCurrentIndex(1)
 
     def _start_vram_timer(self):
         self.vram_timer = QTimer(self)
@@ -703,7 +897,9 @@ class MapleDesktopWindow(QMainWindow):
         self.active_file_content = new_content
         self.code_editor.setPlainText(diff_str or new_content)
         self.right_tabs.setTabText(0, f"Diff: {os.path.basename(path)}")
-        self.right_tabs.setCurrentIndex(0)
+        rendered_html = DocumentRenderer.render_file(path, new_content)
+        self.rendered_view.setHtml(rendered_html if path.lower().endswith((".html", ".htm")) else self._wrap_html(rendered_html))
+        self.right_tabs.setCurrentIndex(1 if DocumentRenderer.is_rich_doc(path) else 0)
         self.chat_markdown_blocks.append(f'<div class="tool-box">EDIT DIFF: {path}</div>')
         self._refresh_chat_html()
 
@@ -716,6 +912,12 @@ class MapleDesktopWindow(QMainWindow):
         self.terminal_log.appendPlainText(f"[{title} | EXIT {exit_code}] $ {cmd}\n{out_txt}\n{'-'*60}")
         self.chat_markdown_blocks.append(f'<div class="tool-box">{title}: {cmd} | EXIT {exit_code}</div>')
         self._refresh_chat_html()
+        # Auto-render any generated PDF/XLSX/PPTX/TEX/PNG referenced in command or output
+        for match in re.findall(r'([A-Za-z0-9_./\\:-]+\.(?:pdf|xlsx|xlsm|csv|pptx|tex|png|jpg|jpeg))', cmd + "\n" + out_txt, re.IGNORECASE):
+            cand = match if os.path.isabs(match) else os.path.abspath(os.path.join(self.workdir, match))
+            if os.path.isfile(cand):
+                self._show_file_in_right_pane(cand, f"[Generated document: {os.path.basename(cand)}]")
+                break
 
     def _on_telemetry(self, tokens: int, elapsed: float, tps: float):
         curr = self.active_model_badge.text().split(" | Telemetry:")[0]
