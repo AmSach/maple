@@ -46,11 +46,26 @@ import re
 import json
 import time
 import shutil
+import difflib
 import argparse
 import subprocess
 from typing import Dict, Any, List, Optional, Tuple
 
 import requests
+
+try:
+    from rich.console import Console
+    from rich.panel import Panel
+    from rich.syntax import Syntax
+    from rich.markdown import Markdown
+    from rich.live import Live
+    from rich.table import Table
+    from rich.text import Text
+    RICH_AVAILABLE = True
+    console = Console()
+except ImportError:
+    RICH_AVAILABLE = False
+    console = None
 
 if sys.stdout and hasattr(sys.stdout, "reconfigure"):
     try:
@@ -182,10 +197,95 @@ def ensure_vram_for_model(model_key: str):
             except Exception:
                 pass
 
+ENABLE_RICH_UI = True
+
+def _guess_lexer(path: str) -> str:
+    ext = os.path.splitext(path)[1].lower().lstrip(".")
+    mapping = {
+        "py": "python", "cpp": "cpp", "hpp": "cpp", "h": "cpp", "c": "c",
+        "js": "javascript", "ts": "typescript", "tsx": "tsx", "jsx": "jsx",
+        "json": "json", "md": "markdown", "bat": "bat", "ps1": "powershell",
+        "sh": "bash", "yaml": "yaml", "yml": "yaml", "html": "html", "css": "css",
+        "rs": "rust", "go": "go", "sql": "sql", "toml": "toml"
+    }
+    return mapping.get(ext, "text")
+
+class VisualRenderer:
+    """Renders live file writes, unified diffs, terminal runs, and markdown in the console."""
+
+    @staticmethod
+    def show_write_file(path: str, content: str):
+        if not (RICH_AVAILABLE and ENABLE_RICH_UI):
+            return
+        lexer = _guess_lexer(path)
+        lines = content.splitlines()
+        max_preview = 60
+        preview_lines = lines[:max_preview]
+        truncated = len(lines) > max_preview
+
+        # Animate progressive line reveal for live "writing to file" effect
+        step = max(1, len(preview_lines) // 12)
+        with Live(console=console, refresh_per_second=15, transient=False) as live:
+            for idx in range(step, len(preview_lines) + step, step):
+                chunk = "\n".join(preview_lines[:min(idx, len(preview_lines))])
+                if truncated and idx >= len(preview_lines):
+                    chunk += f"\n# ... ({len(lines) - max_preview} more lines written)"
+                syn = Syntax(chunk, lexer, theme="monokai", line_numbers=True, word_wrap=True)
+                live.update(Panel(syn, title=f"[bold green]WRITE FILE[/bold green] {path}", border_style="green"))
+                if idx < len(preview_lines):
+                    time.sleep(0.03)
+
+    @staticmethod
+    def show_edit_diff(path: str, old_text: str, new_text: str):
+        if not (RICH_AVAILABLE and ENABLE_RICH_UI):
+            return
+        diff_lines = list(difflib.unified_diff(
+            old_text.splitlines(),
+            new_text.splitlines(),
+            fromfile=f"a/{os.path.basename(path)}",
+            tofile=f"b/{os.path.basename(path)}",
+            lineterm=""
+        ))
+        diff_str = "\n".join(diff_lines[:80])
+        if len(diff_lines) > 80:
+            diff_str += f"\n... ({len(diff_lines) - 80} more diff lines)"
+        if not diff_str:
+            diff_str = "(no changes)"
+        syn = Syntax(diff_str, "diff", theme="monokai", word_wrap=True)
+        console.print(Panel(syn, title=f"[bold yellow]EDIT DIFF[/bold yellow] {path}", border_style="yellow"))
+
+    @staticmethod
+    def show_read_file(path: str, content: str, total_lines: int):
+        if not (RICH_AVAILABLE and ENABLE_RICH_UI):
+            return
+        lexer = _guess_lexer(path)
+        lines = content.splitlines()
+        preview = "\n".join(lines[:35])
+        if len(lines) > 35:
+            preview += f"\n... ({len(lines) - 35} more lines, total {total_lines})"
+        syn = Syntax(preview, lexer, theme="monokai", word_wrap=True)
+        console.print(Panel(syn, title=f"[bold cyan]READ FILE[/bold cyan] {path} ({total_lines} lines)", border_style="cyan"))
+
+    @staticmethod
+    def show_command_result(title: str, cmd_str: str, res: Dict[str, Any]):
+        if not (RICH_AVAILABLE and ENABLE_RICH_UI):
+            return
+        code = res.get("exit_code", -1)
+        badge = f"[bold green]EXIT {code}[/bold green]" if code == 0 else f"[bold red]EXIT {code}[/bold red]"
+        out = (res.get("stdout") or "").strip()
+        err = (res.get("stderr") or "").strip()
+        body = f"$ {cmd_str}\n"
+        if out:
+            body += f"\n{out[:1200]}"
+        if err:
+            body += f"\n[STDERR]\n{err[:600]}"
+        border = "blue" if code == 0 else "red"
+        console.print(Panel(body, title=f"[bold]{title}[/bold] | {badge}", border_style=border))
+
 # Built-in Engineering Tools Implementation
 class Tools:
     @staticmethod
-    def run_command(cmd: str, timeout: int = 45) -> Dict[str, Any]:
+    def run_command(cmd: str, timeout: int = 45, silent: bool = False) -> Dict[str, Any]:
         """Runs a shell command and captures stdout, stderr, and returncode."""
         try:
             proc = subprocess.run(
@@ -196,15 +296,24 @@ class Tools:
                 text=True,
                 timeout=timeout
             )
-            return {
+            res = {
                 "exit_code": proc.returncode,
                 "stdout": proc.stdout,
                 "stderr": proc.stderr
             }
+            if not silent:
+                VisualRenderer.show_command_result("SHELL COMMAND", cmd, res)
+            return res
         except subprocess.TimeoutExpired:
-            return {"exit_code": -1, "stdout": "", "stderr": f"Command timed out after {timeout}s"}
+            res = {"exit_code": -1, "stdout": "", "stderr": f"Command timed out after {timeout}s"}
+            if not silent:
+                VisualRenderer.show_command_result("SHELL COMMAND", cmd, res)
+            return res
         except Exception as e:
-            return {"exit_code": -1, "stdout": "", "stderr": str(e)}
+            res = {"exit_code": -1, "stdout": "", "stderr": str(e)}
+            if not silent:
+                VisualRenderer.show_command_result("SHELL COMMAND", cmd, res)
+            return res
 
     @staticmethod
     def read_file(path: str, start_line: Optional[int] = None, end_line: Optional[int] = None) -> Dict[str, Any]:
@@ -218,7 +327,9 @@ class Tools:
             s = max(0, (start_line - 1)) if start_line else 0
             e = min(total_lines, end_line) if end_line else total_lines
             selected = lines[s:e]
+            raw_content = "".join(selected)
             content = "".join([f"{s + idx + 1:4d} | {line}" for idx, line in enumerate(selected)])
+            VisualRenderer.show_read_file(path, raw_content, total_lines)
             return {"path": path, "total_lines": total_lines, "content": content}
         except Exception as e:
             return {"error": str(e)}
@@ -228,6 +339,7 @@ class Tools:
         """Writes content atomically to a file."""
         try:
             os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+            VisualRenderer.show_write_file(path, content)
             with open(path, "w", encoding="utf-8") as f:
                 f.write(content)
             return {"success": True, "path": path, "bytes_written": len(content)}
@@ -246,6 +358,7 @@ class Tools:
                 return {"error": "Target string not found in file."}
             count = data.count(target)
             new_data = data.replace(target, replacement)
+            VisualRenderer.show_edit_diff(path, data, new_data)
             with open(path, "w", encoding="utf-8") as f:
                 f.write(new_data)
             return {"success": True, "path": path, "replacements": count}
@@ -286,19 +399,21 @@ class Tools:
                 text=True,
                 timeout=30
             )
-            return {
+            res = {
                 "exit_code": proc.returncode,
                 "stdout": proc.stdout,
                 "stderr": proc.stderr
             }
+            VisualRenderer.show_command_result("PYTHON EVAL", code[:120].replace("\n", "; "), res)
+            return res
         except Exception as e:
             return {"exit_code": -1, "stdout": "", "stderr": str(e)}
 
     @staticmethod
     def git_status() -> Dict[str, Any]:
         """Returns git branch and modified files."""
-        res = Tools.run_command("git status --short")
-        branch_res = Tools.run_command("git branch --show-current")
+        res = Tools.run_command("git status --short", silent=True)
+        branch_res = Tools.run_command("git branch --show-current", silent=True)
         return {
             "branch": branch_res.get("stdout", "").strip(),
             "status": res.get("stdout", "").strip()
@@ -307,7 +422,7 @@ class Tools:
     @staticmethod
     def vram_status() -> Dict[str, Any]:
         """Returns live GPU VRAM usage via nvidia-smi."""
-        res = Tools.run_command("nvidia-smi --query-gpu=memory.total,memory.used,memory.free,utilization.gpu --format=csv,noheader,nounits")
+        res = Tools.run_command("nvidia-smi --query-gpu=memory.total,memory.used,memory.free,utilization.gpu --format=csv,noheader,nounits", silent=True)
         if res["exit_code"] == 0:
             parts = [p.strip() for p in res["stdout"].strip().split(",")]
             if len(parts) >= 4:
@@ -380,61 +495,80 @@ def query_model(model_key: str, prompt: str, system: Optional[str] = None, strea
 
     start_t = time.time()
     collected = []
+    use_rich = RICH_AVAILABLE and ENABLE_RICH_UI
+
+    def _emit_token(tok: str, live_obj=None):
+        collected.append(tok)
+        if use_rich and live_obj is not None:
+            txt = "".join(collected)
+            live_obj.update(Panel(Markdown(txt), title=f"[bold magenta]{cfg['name']}[/bold magenta]", border_style="magenta"))
+        else:
+            sys.stdout.write(tok)
+            sys.stdout.flush()
 
     try:
-        if endpoint.endswith("/completion"):
-            # llama.cpp server format
-            prompt_formatted = f"<|im_start|>system\n{system}<|im_end|>\n<|im_start|>user\n{prompt}<|im_end|>\n<|im_start|>assistant\n" if system else f"<|im_start|>user\n{prompt}<|im_end|>\n<|im_start|>assistant\n"
-            llama_payload = {
-                "prompt": prompt_formatted,
-                "stream": stream,
-                "n_predict": cfg["max_tokens"],
-                "temperature": cfg["temperature"],
-                "stop": ["<|im_end|>", "<|im_start|>"]
-            }
-            resp = requests.post(endpoint, json=llama_payload, stream=stream, timeout=120)
-            if stream:
-                for line in resp.iter_lines():
-                    if not line:
-                        continue
-                    line_str = line.decode("utf-8")
-                    if line_str.startswith("data: "):
-                        data_s = line_str[6:].strip()
-                        if data_s == "[DONE]":
-                            break
+        live_ctx = Live(Panel("Thinking...", title=f"[bold magenta]{cfg['name']}[/bold magenta]", border_style="magenta"), console=console, refresh_per_second=12) if (use_rich and stream) else None
+        if live_ctx:
+            live_ctx.__enter__()
+        try:
+            if endpoint.endswith("/completion"):
+                prompt_formatted = f"<|im_start|>system\n{system}<|im_end|>\n<|im_start|>user\n{prompt}<|im_end|>\n<|im_start|>assistant\n" if system else f"<|im_start|>user\n{prompt}<|im_end|>\n<|im_start|>assistant\n"
+                llama_payload = {
+                    "prompt": prompt_formatted,
+                    "stream": stream,
+                    "n_predict": cfg["max_tokens"],
+                    "temperature": cfg["temperature"],
+                    "stop": ["<|im_end|>", "<|im_start|>"]
+                }
+                resp = requests.post(endpoint, json=llama_payload, stream=stream, timeout=120)
+                if stream:
+                    for line in resp.iter_lines():
+                        if not line:
+                            continue
+                        line_str = line.decode("utf-8")
+                        if line_str.startswith("data: "):
+                            data_s = line_str[6:].strip()
+                            if data_s == "[DONE]":
+                                break
+                            try:
+                                token = json.loads(data_s).get("content", "")
+                                if token:
+                                    _emit_token(token, live_ctx)
+                            except Exception:
+                                pass
+                else:
+                    out = resp.json().get("content", "")
+                    collected.append(out)
+                    if use_rich:
+                        console.print(Panel(Markdown(out), title=f"[bold magenta]{cfg['name']}[/bold magenta]", border_style="magenta"))
+                    else:
+                        sys.stdout.write(out)
+
+            else:
+                resp = requests.post(endpoint, json=payload, stream=stream, timeout=120)
+                if stream:
+                    for line in resp.iter_lines():
+                        if not line:
+                            continue
                         try:
-                            token = json.loads(data_s).get("content", "")
-                            sys.stdout.write(token)
-                            sys.stdout.flush()
-                            collected.append(token)
+                            chunk = json.loads(line.decode("utf-8"))
+                            token = chunk.get("response", "")
+                            if token:
+                                _emit_token(token, live_ctx)
+                            if chunk.get("done", False):
+                                break
                         except Exception:
                             pass
-            else:
-                out = resp.json().get("content", "")
-                sys.stdout.write(out)
-                collected.append(out)
-
-        else:
-            # Ollama format
-            resp = requests.post(endpoint, json=payload, stream=stream, timeout=120)
-            if stream:
-                for line in resp.iter_lines():
-                    if not line:
-                        continue
-                    try:
-                        chunk = json.loads(line.decode("utf-8"))
-                        token = chunk.get("response", "")
-                        sys.stdout.write(token)
-                        sys.stdout.flush()
-                        collected.append(token)
-                        if chunk.get("done", False):
-                            break
-                    except Exception:
-                        pass
-            else:
-                out = resp.json().get("response", "")
-                sys.stdout.write(out)
-                collected.append(out)
+                else:
+                    out = resp.json().get("response", "")
+                    collected.append(out)
+                    if use_rich:
+                        console.print(Panel(Markdown(out), title=f"[bold magenta]{cfg['name']}[/bold magenta]", border_style="magenta"))
+                    else:
+                        sys.stdout.write(out)
+        finally:
+            if live_ctx:
+                live_ctx.__exit__(None, None, None)
 
     except requests.exceptions.ConnectionError:
         print(f"\n[!] Connection failed to {endpoint}. Ensure Ollama or the Bonsai router is running.")
@@ -587,8 +721,12 @@ def main():
     parser.add_argument("--chat", "-c", action="store_true", help="Launch interactive REPL session")
     parser.add_argument("--vram", action="store_true", help="Print GPU VRAM status and exit")
     parser.add_argument("--roster", action="store_true", help="Print available models and exit")
+    parser.add_argument("--no-ui", action="store_true", help="Disable Rich live panels and print plain text")
 
     args = parser.parse_args()
+    if args.no_ui:
+        global ENABLE_RICH_UI
+        ENABLE_RICH_UI = False
 
     if args.vram:
         print(Tools.vram_status())
