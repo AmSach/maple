@@ -159,15 +159,28 @@ def ensure_vram_for_model(model_key: str):
             pass
 
     elif target_backend == "ollama":
-        # Check if standalone llama-server is holding VRAM on 8081
+        # If the gateway router is active on DEFAULT_OLLAMA_API, it manages VRAM eviction automatically.
+        router_active = False
         try:
-            r = requests.get(f"{DEFAULT_BONSAI_API}/health", timeout=0.8)
-            if r.status_code == 200:
-                # Terminate llama-server to free 5.5GB VRAM
-                subprocess.run(["taskkill", "/F", "/IM", "llama-server.exe"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                time.sleep(1)
+            tags_r = requests.get(f"{DEFAULT_OLLAMA_API}/api/tags", timeout=1.0)
+            if tags_r.status_code == 200:
+                router_active = any("bonsai" in m.get("name", "") for m in tags_r.json().get("models", []))
         except Exception:
             pass
+
+        if not router_active:
+            # Check if standalone llama-server is holding VRAM on 8081
+            try:
+                r = requests.get(f"{DEFAULT_BONSAI_API}/health", timeout=0.8)
+                if r.status_code == 200:
+                    # Terminate only standalone Bonsai llama-server, not Ollama's internal runner
+                    subprocess.run(
+                        ["powershell", "-Command", "Get-CimInstance Win32_Process -Filter \"Name='llama-server.exe'\" | Where-Object { $_.ExecutablePath -notlike '*Ollama*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"],
+                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                    )
+                    time.sleep(1)
+            except Exception:
+                pass
 
 # Built-in Engineering Tools Implementation
 class Tools:
@@ -455,7 +468,7 @@ def run_autonomous_agent(task: str, model_key: str = "auto", max_steps: int = 6)
         f"Rules:\n"
         f"1. To execute work, write TOOL: <name> followed by ARGS: <json>.\n"
         f"2. After tools execute, inspect their outputs and decide the next step.\n"
-        f"3. When the task is fully accomplished, output 'FINAL ANSWER:' followed by your concise report.\n"
+        f"3. Only when all tool results have been observed and the task is accomplished, output 'FINAL ANSWER:' followed by your concise report.\n"
         f"4. Ban placeholders. Write complete, working solutions."
     )
 
@@ -466,9 +479,10 @@ def run_autonomous_agent(task: str, model_key: str = "auto", max_steps: int = 6)
         prompt = conversation_history + "\nWhat is your next action?"
         response = query_model(actual_model, prompt=prompt, system=system_prompt, stream=True)
 
-        # Check for tool invocation
-        tool_match = re.search(r"TOOL:\s*(\w+)\s*\nARGS:\s*({.*?})", response, re.DOTALL)
-        if tool_match:
+        # Check for tool invocations (support one or multiple tool calls per turn)
+        tool_matches = list(re.finditer(r"TOOL:\s*(\w+)\s*\nARGS:\s*({.*?})", response, re.DOTALL))
+        executed_any_tool = False
+        for tool_match in tool_matches:
             tool_name = tool_match.group(1).strip()
             args_raw = tool_match.group(2).strip()
             try:
@@ -478,6 +492,7 @@ def run_autonomous_agent(task: str, model_key: str = "auto", max_steps: int = 6)
                 print(f"[!] Failed to parse tool args: {e}")
 
             if tool_name in TOOL_REGISTRY:
+                executed_any_tool = True
                 print(f"\n[*] Executing tool: {tool_name}({args})")
                 tool_func = TOOL_REGISTRY[tool_name]
                 try:
@@ -490,7 +505,7 @@ def run_autonomous_agent(task: str, model_key: str = "auto", max_steps: int = 6)
                 print(f"[!] Unknown tool: {tool_name}")
                 conversation_history += f"\nERROR: Unknown tool '{tool_name}'\n"
 
-        if "FINAL ANSWER:" in response or "DONE" in response:
+        if not executed_any_tool and ("FINAL ANSWER:" in response or "DONE" in response):
             print("\n[+] Task goal completed!")
             break
 
