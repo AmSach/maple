@@ -430,24 +430,31 @@ llama-cli \
 ```
 
 #### Option 2: Ollama Local Deployment
-Create a `Modelfile`:
+Create a `Modelfile` (or use `Modelfile.deepseek`):
 ```dockerfile
 FROM ./DeepSeek-Coder-V2-Lite-MAPLE-Sub5GB.gguf
 
-TEMPLATE """{{- if .System }}<｜System｜>{{ .System }}{{ end }}
+SYSTEM "You are an expert software engineer. Respond concisely with clean, production-grade code in English."
+
+TEMPLATE """{{- if .System }}<｜System｜>{{ .System }}<｜end of sentence｜>{{ end }}
 {{- range .Messages }}
-{{- if eq .Role "user" }}<｜User｜>{{ .Content }}{{ end }}
-{{- if eq .Role "assistant" }}<｜Assistant｜>{{ .Content }}<｜end of sentence｜>{{ end }}
+{{- if eq .Role "user" }}<｜User｜>{{ .Content }}<｜Assistant｜>{{ else if eq .Role "assistant" }}{{ .Content }}<｜end of sentence｜>{{ end }}
 {{- end }}
 {{- if .Prompt }}<｜User｜>{{ .Prompt }}<｜Assistant｜>{{ end }}"""
 
 PARAMETER stop "<｜end of sentence｜>"
+PARAMETER stop "<｜end▁of▁sentence｜>"
 PARAMETER stop "<｜User｜>"
 PARAMETER stop "<｜Assistant｜>"
+PARAMETER stop "User:"
+PARAMETER stop "Assistant:"
+PARAMETER stop "[end of text]"
+PARAMETER num_ctx 2048
 PARAMETER num_gpu 99
 PARAMETER temperature 0.2
 PARAMETER top_p 0.95
-PARAMETER repeat_penalty 1.1
+PARAMETER repeat_penalty 1.15
+PARAMETER repeat_last_n 256
 ```
 
 Build and run:
