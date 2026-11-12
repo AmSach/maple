@@ -585,25 +585,66 @@ Run directly in VRAM at maximum hardware throughput.
 
 ---
 
+## Local Agent Harness and Ollama-Bonsai Router
+
+The `tools/` directory contains a production-grade 4-tier local agent harness and a unified API gateway router designed for the RTX 4050 6GB Laptop GPU.
+
+### Quick Start
+
+```powershell
+# Start the Ollama-Bonsai Gateway Router (unified API on :11434)
+cd E:\OllamaModels
+.\start_ollama_bonsai_router.bat
+
+# Run the harness in interactive mode
+cd C:\Users\amans\.gemini\antigravity\scratch\repos\maple\tools
+python local_agent_harness.py --chat
+
+# One-shot auto-routed prompt
+python local_agent_harness.py "Write a lock-free SPSC ring buffer in C++20"
+
+# Autonomous multi-step agent with tool execution
+python local_agent_harness.py --task "Find all 48-expert references in README.md and update them to 54"
+```
+
+### Model Roster Summary
+
+| Tier | Model | VRAM | Best For |
+|:---|:---|:---:|:---|
+| `deepseek` | DeepSeek-Coder-V2-Lite MAPLE (54-expert MoE, Sub-5GB) | 4,850 MiB | C++20, Rust, lock-free, CUDA, algorithms |
+| `gemma` | Gemma 4 26B MAPLE (In-Situ Sub-5GB) | 4,870 MiB | Python, web, frontend, refactoring |
+| `bonsai` | Ternary Bonsai 2 27B (PTQ1_0) | 5,500 MiB | Architecture, strategy, system design |
+| `fast` | Qwen 2.5 Coder 1.5B | 900 MiB | Git commits, regex, one-liners (<300ms) |
+
+VRAM arbitration evicts the active model before loading the next tier. Only one model occupies VRAM at any time.
+
+For full documentation of CLI flags, tool schemas, router endpoints, and VRAM arbitration logic, see [HARNESS.md](HARNESS.md).
+
+---
+
 ## Repository Structure
 
 ```
 maple/
 ├── README.md                           # Documentation & verified benchmarks
+├── HARNESS.md                          # Local agent harness & router reference
 ├── LICENSE                             # Apache 2.0 License
 ├── requirements.txt                    # Python dependencies
 ├── run_maple.bat                       # Interactive Windows launcher
 ├── upload_to_hf.py                     # Hugging Face Hub upload utility
-└── engine/
-    ├── benchmark_deepseek.py           # DeepSeek-Coder-V2-Lite 3-task production benchmark
-    ├── maple_deepseek_54exp.py         # DeepSeek-Coder-V2-Lite 54-expert sub-5GB builder
-    ├── maple_build_deepseek.py         # DeepSeek MoE tensor slicing engine
-    ├── maple_profile.py                # Scores & extracts top experts from imatrix
-    ├── maple_build.py                  # Slices & builds Gemma 4 4.75 GB GGUF container
-    ├── benchmark.py                    # Gemma 4 automated 4-domain semantic fidelity suite
-    ├── chat.py                         # Streaming console with live telemetry
-    ├── calibration_corpus.txt          # Multi-domain calibration corpus (1,979 tokens)
-    └── expert_selection_map.json       # Extracted 30-layer empirical expert indices
+├── engine/
+|   ├── benchmark_deepseek.py           # DeepSeek-Coder-V2-Lite 3-task production benchmark
+|   ├── maple_deepseek_54exp.py         # DeepSeek-Coder-V2-Lite 54-expert sub-5GB builder
+|   ├── maple_build_deepseek.py         # DeepSeek MoE tensor slicing engine
+|   ├── maple_profile.py                # Scores & extracts top experts from imatrix
+|   ├── maple_build.py                  # Slices & builds Gemma 4 4.75 GB GGUF container
+|   ├── benchmark.py                    # Gemma 4 automated 4-domain semantic fidelity suite
+|   ├── chat.py                         # Streaming console with live telemetry
+|   ├── calibration_corpus.txt          # Multi-domain calibration corpus (1,979 tokens)
+|   └── expert_selection_map.json       # Extracted 30-layer empirical expert indices
+└── tools/
+    ├── local_agent_harness.py          # 4-tier model chooser, autonomous agent loop, tools
+    └── ollama_bonsai_router.py         # FastAPI gateway unifying Ollama and Bonsai backends
 ```
 
 ---
