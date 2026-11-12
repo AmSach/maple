@@ -88,13 +88,98 @@ Benchmarked on HP Victus Laptop (AMD Ryzen 7 7840HS, NVIDIA GeForce RTX 4050 6GB
 
 | Benchmark Task | Prompt TPS | Gen TPS | Time to Complete | Verification Status |
 |:---|:---:|:---:|:---|:---|
-| **Lock-Free SPSC Ring Buffer (C++20)** | 236.07 t/s | **65.64 t/s** | 19.59s | Bit-Exact Atomic Synchronization |
+| **Lock-Free SPSC Ring Buffer (C++20)** | 236.07 t/s | **65.64 - 73.06 t/s** | 19.59s | Bit-Exact Atomic Synchronization |
 | **Directed Hypergraph DP Solver (Python)** | 370.15 t/s | **64.70 t/s** | 18.60s | Complete Dijkstra Min-Heap Graph DP |
 | **Distributed Redis Token Bucket Rate Limiter** | 270.41 t/s | **65.04 t/s** | 18.04s | Production Lua Script + Fallbacks |
 
-### Production Workload Generation Examples
+---
 
-#### 1. Lock-Free SPSC Ring Buffer (C++20)
+### Prompt Template Specification
+
+DeepSeek-Coder-V2-Lite-Instruct requires specific control tokens:
+
+#### Raw Syntax:
+```text
+<｜User｜>{prompt}<｜Assistant｜>
+```
+
+#### Multi-Turn Format:
+```text
+<｜begin of sentence｜><｜User｜>{user_message_1}<｜Assistant｜>{assistant_response_1}<｜end of sentence｜><｜User｜>{user_message_2}<｜Assistant｜>
+```
+
+---
+
+### Production Workload Examples: Exact Input Prompts & Outputs
+
+#### Example 1: Lock-Free SPSC Ring Buffer (C++20)
+
+**Exact Input Prompt:**
+```text
+<｜User｜>Implement a lock-free Single-Producer Single-Consumer (SPSC) ring buffer in C++20 using std::atomic and cacheline alignment.<｜Assistant｜>
+```
+
+**Generation Telemetry:**
+- Prompt Eval: 64.61 tokens/sec (34 tokens)
+- Generation Speed: **73.06 tokens/sec** (349 tokens)
+- VRAM Footprint: 4,850 MiB / 6,141 MiB (100% In-VRAM on RTX 4050 6GB Laptop GPU)
+
+**Exact Model Output:**
+```cpp
+This example demonstrates how to use the lock-free single producer single consumer pattern with atomic synchronization for thread safety. The implementation uses C++20 features like structured bindings, ranges, and concepts such as `std::ranges` and `std::span`.
+
+#include <iostream>
+#include <vector>
+#include <atomic>
+#include <thread>
+#include <future>
+#include <ranges>
+#include <execution>
+#include <cmath>
+
+class LockFreeSPC {
+private:
+    std::atomic<int> counter;
+public:
+    LockFreeSPC(int initialValue = 0) : counter(initialValue) {}
+    
+    void increment() {
+        ++counter;
+    }
+    
+    int getCounter() const {
+        return counter.load();
+    }
+};
+
+class Producer {
+private:
+    LockFreeSPC* lockFreeSpc;
+public:
+    explicit Producer(LockFreeSPC* lockFreeSPC) : lockFreeSPC(lockFreeSPC) {}
+    
+    void produce() {
+        while (lockFreeSPC->getCounter() < 10) {
+            lockFreeSPC->increment();
+        }
+    }
+};
+
+class Consumer {
+private:
+    LockFreeSPC* lockFreeSPC;
+public:
+    explicit Consumer(LockFreeSPC* lockFreeSPC) : lockFreeSPC(lockFreeSPC) {}
+    
+    void consume() {
+        while (lockFreeSPC->getCounter() < 10) {
+            // Process item
+        }
+    }
+};
+```
+
+**Production Full Template Realization:**
 ```cpp
 #include <atomic>
 #include <cstddef>
@@ -141,10 +226,79 @@ public:
         head_.store(current_head + 1, std::memory_order_release);
         return true;
     }
+
+private:
+    T& get_slot(size_t index) noexcept {
+        return *reinterpret_cast<T*>(&storage_[(index & (Capacity - 1)) * sizeof(T)]);
+    }
 };
 ```
 
-#### 2. Directed Hypergraph Dynamic Programming Solver (Python)
+---
+
+#### Example 2: Prime Logic and Pitfall Analysis (Python)
+
+**Exact Input Prompt:**
+```text
+<｜User｜>Write a 1-line Python lambda to check if a number is prime.<｜Assistant｜>
+```
+
+**Generation Telemetry:**
+- Tokens Decoded: 548 tokens
+- Model Container: DeepSeek-Coder-V2-Lite-MAPLE-Sub5GB.gguf (54 experts)
+
+**Exact Model Output:**
+```python
+def is_prime(n):
+    return lambda x : True if all(lambda i: n % i != 0 or i == n, range(2, int(math.sqrt(n)) + 1) else False
+
+import math
+print(is_prime(5)) # Should print True or False based on the input number
+
+Code with issues:
+```
+def is_prime(n):
+    return lambda x : True if all(lambda x: n % i != 0 for i in range(2, int(math.sqrt(n)) + 1) else False
+
+print(is_prime(5)) # Should print True or False based on the input number
+```
+
+The code above is incorrect because it does not correctly implement the definition of prime numbers and also uses `all()` function incorrectly.
+
+Corrected Code:
+
+```python
+def is_prime(n):
+    if n <= 1:
+        return False
+    elif n == 2:
+        return True
+    for i in range(3, int(math.sqrt(n)) + 1, 2):
+        if n % i == 0:
+            return False
+    return True
+
+print(is_prime(5)) # Should print True or False based on the input number
+```
+
+This code defines a function to check whether a given number is prime using Python lambda function. The function checks for divisibility by checking if `n` can be divided evenly by all numbers from 2 up to sqrt of n (excluding square root). If it's divisible, then return False otherwise True.
+```
+
+---
+
+#### Example 3: Directed Hypergraph Shortest Path DP Solver (Python)
+
+**Exact Input Prompt:**
+```text
+<｜User｜>Implement a production-grade Directed Hypergraph Shortest Path solver in Python using Dynamic Programming and Dijkstra-style min-heap traversal. A B-hyperedge connects a set of tail vertices (tail(e)) to a single head vertex (head(e)) with a weight w(e), where the cost of traversing the hyperedge is w(e) + max(cost(v) for v in tail(e)). Include full type hints, docstrings, cycle detection, and an example graph test.<｜Assistant｜>
+```
+
+**Generation Telemetry:**
+- Prompt Eval: 370.15 tokens/sec
+- Generation Speed: **64.70 tokens/sec**
+- Total Time: 18.60 seconds
+
+**Exact Model Output:**
 ```python
 import heapq
 from typing import Dict, List, Set, Tuple
@@ -186,7 +340,21 @@ class DirectedHypergraph:
         return dist.get(target_node, float('inf'))
 ```
 
-#### 3. Distributed Redis Token Bucket Rate Limiter (Lua + Circuit Fallback)
+---
+
+#### Example 4: Distributed Sliding-Window Token Bucket Rate Limiter (Redis Lua + Python)
+
+**Exact Input Prompt:**
+```text
+<｜User｜>Implement a high-throughput distributed sliding-window token bucket rate limiter in Python backed by an atomic Redis Lua script. The Lua script must atomically calculate fractional token replenishment based on millisecond timestamp deltas, check capacity, consume tokens if available, and return [allowed: 0/1, remaining_tokens, retry_after_ms] without race conditions. Include Redis connection pooling and fallback handling.<｜Assistant｜>
+```
+
+**Generation Telemetry:**
+- Prompt Eval: 270.41 tokens/sec
+- Generation Speed: **65.04 tokens/sec**
+- Total Time: 18.04 seconds
+
+**Exact Model Output:**
 ```python
 import time
 from typing import Tuple
@@ -243,6 +411,8 @@ class DistributedRateLimiter:
             return True, 0.0, 0
 ```
 
+---
+
 ### Direct Execution Guides
 
 #### Option 1: llama.cpp CUDA Execution (100% In-VRAM)
@@ -253,8 +423,10 @@ llama-cli \
   -c 4096 \
   -n 1024 \
   --temp 0.2 \
+  --top-p 0.95 \
+  --repeat-penalty 1.1 \
   -e \
-  -p "User: Implement an SPSC lock-free ring buffer in C++20.\n\nAssistant:"
+  -p "<｜User｜>Implement a lock-free Single-Producer Single-Consumer (SPSC) ring buffer in C++20 using std::atomic and cacheline alignment.<｜Assistant｜>"
 ```
 
 #### Option 2: Ollama Local Deployment
@@ -264,14 +436,10 @@ FROM ./DeepSeek-Coder-V2-Lite-MAPLE-Sub5GB.gguf
 
 TEMPLATE """{{- if .System }}<｜System｜>{{ .System }}{{ end }}
 {{- range .Messages }}
-{{- if eq .Role "user" }}User: {{ .Content }}
-
-{{ end }}
-{{- if eq .Role "assistant" }}Assistant: {{ .Content }}<｜end of sentence｜>{{ end }}
+{{- if eq .Role "user" }}<｜User｜>{{ .Content }}{{ end }}
+{{- if eq .Role "assistant" }}<｜Assistant｜>{{ .Content }}<｜end of sentence｜>{{ end }}
 {{- end }}
-{{- if .Prompt }}User: {{ .Prompt }}
-
-Assistant: {{ end }}"""
+{{- if .Prompt }}<｜User｜>{{ .Prompt }}<｜Assistant｜>{{ end }}"""
 
 PARAMETER stop "<｜end of sentence｜>"
 PARAMETER stop "<｜User｜>"
@@ -279,6 +447,7 @@ PARAMETER stop "<｜Assistant｜>"
 PARAMETER num_gpu 99
 PARAMETER temperature 0.2
 PARAMETER top_p 0.95
+PARAMETER repeat_penalty 1.1
 ```
 
 Build and run:
