@@ -3,12 +3,61 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MAPLE: Manifold-Activated Pruning of Latent Experts</title>
-  <meta name="description" content="Sub-2-BPW MoE language model compression enabling Gemma 4 26B to execute 100% in-VRAM at 45.4 tokens/second on consumer 6GB GPUs." />
-  <meta property="og:title" content="MAPLE: Manifold-Activated Pruning of Latent Experts" />
-  <meta property="og:description" content="Run Gemma 4 26B 100% In-VRAM at 45.4 TPS on 6GB laptop GPUs without PCIe system-RAM paging stalls." />
+  <title>MAPLE: Manifold-Activated Pruning of Latent Experts | Aman Sachan</title>
+  <meta name="description" content="Sub-2-BPW MoE language model compression enabling Gemma 4 26B and DeepSeek-Coder-V2 to execute 100% in-VRAM at 45-76 tokens/second on consumer 6GB GPUs. Developed by Aman Sachan." />
+  <meta name="author" content="Aman Sachan" />
+  <meta name="keywords" content="MAPLE, Aman Sachan, theamansachan, i.amsach, MoE pruning, Gemma 4 26B, DeepSeek-Coder-V2, GGUF, llama.cpp, edge AI, sub-2-bpw" />
+  <link rel="canonical" href="https://amsach.github.io/maple/" />
+
+  <!-- Open Graph / Social Sharing -->
+  <meta property="og:title" content="MAPLE: Manifold-Activated Pruning of Latent Experts | Aman Sachan" />
+  <meta property="og:description" content="Run Gemma 4 26B & DeepSeek-Coder-V2 100% In-VRAM at up to 76 TPS on 6GB laptop GPUs without PCIe system-RAM paging stalls. By Aman Sachan." />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://amsach.github.io/maple/" />
+  <meta property="og:site_name" content="Aman Sachan Research" />
+
+  <!-- Twitter / X Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="MAPLE: MoE LLM Structural Pruning for 6GB GPUs" />
+  <meta name="twitter:description" content="Pruning 80 of Gemma 4's 128 experts to achieve 45.4 tokens/second 100% in-VRAM on consumer laptop GPUs. By Aman Sachan." />
+
+  <!-- Google Knowledge Graph / Schema.org JSON-LD -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Person",
+        "@id": "https://amsach.github.io/maple/#author",
+        "name": "Aman Sachan",
+        "url": "https://github.com/AmSach",
+        "jobTitle": "Independent Systems & AI Researcher",
+        "email": "mailto:amansachan92905@gmail.com",
+        "sameAs": [
+          "https://github.com/AmSach",
+          "https://linkedin.com/in/theamansachan",
+          "https://instagram.com/i.amsach",
+          "https://huggingface.co/AmSach",
+          "https://scholar.google.com/citations?user=dfgiWLYAAAAJ&hl=en",
+          "https://kaggle.com/amansachan",
+          "https://doi.org/10.5281/zenodo.24042480"
+        ]
+      },
+      {
+        "@type": "SoftwareApplication",
+        "name": "MAPLE (Manifold-Activated Pruning of Latent Experts)",
+        "operatingSystem": "Cross-platform (Linux, Windows, macOS)",
+        "applicationCategory": "DeveloperApplication",
+        "license": "https://opensource.org/licenses/Apache-2.0",
+        "url": "https://amsach.github.io/maple/",
+        "author": {
+          "@id": "https://amsach.github.io/maple/#author"
+        },
+        "description": "Domain-targeted structural expert pruning framework for Mixture-of-Experts language models (Gemma 4 26B, DeepSeek-Coder-V2) enabling sub-5GB GGUF deployment in consumer GPU VRAM."
+      }
+    ]
+  }
+  </script>
   
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -641,15 +690,20 @@
   <!-- Footer -->
   <footer class="relative z-10 border-t border-white/5 py-12 px-4 max-w-7xl mx-auto text-center text-xs font-mono text-slate-500">
     <div class="flex flex-wrap items-center justify-center gap-6 mb-4">
-      <a href="https://huggingface.co/AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF" target="_blank" rel="noopener" class="hover:text-slate-300 transition-colors">Hugging Face Model</a>
+      <a href="https://huggingface.co/AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF" target="_blank" rel="noopener" class="hover:text-slate-300 transition-colors">Gemma 4 Sub-5GB</a>
+      <a href="https://huggingface.co/AmSach/DeepSeek-Coder-V2-Lite-Instruct-MAPLE-Sub5GB-GGUF" target="_blank" rel="noopener" class="hover:text-slate-300 transition-colors">DeepSeek Sub-5GB</a>
       <a href="https://github.com/AmSach/maple" target="_blank" rel="noopener" class="hover:text-slate-300 transition-colors">GitHub Repository</a>
+      <a href="https://github.com/AmSach" target="_blank" rel="noopener" class="hover:text-slate-300 transition-colors">GitHub Profile (@AmSach)</a>
+      <a href="https://linkedin.com/in/theamansachan" target="_blank" rel="noopener" class="hover:text-[#0A66C2] transition-colors">LinkedIn (@theamansachan)</a>
+      <a href="https://instagram.com/i.amsach" target="_blank" rel="noopener" class="hover:text-[#E4405F] transition-colors">Instagram (@i.amsach)</a>
+      <a href="https://scholar.google.com/citations?user=dfgiWLYAAAAJ&hl=en" target="_blank" rel="noopener" class="hover:text-slate-300 transition-colors">Google Scholar</a>
       <a href="https://doi.org/10.5281/zenodo.24042480" target="_blank" rel="noopener" class="hover:text-slate-300 transition-colors">Zenodo Preprint</a>
       <a href="https://github.com/ggml-org/llama.cpp/discussions/31894" target="_blank" rel="noopener" class="hover:text-slate-300 transition-colors">llama.cpp Community</a>
       <a href="https://launchnest.io/p/maple-2" target="_blank" rel="noopener" class="hover:text-slate-300 transition-colors">LaunchNest Listing</a>
       <a href="https://www.pitchhut.com/project/maple-moe-pruning" target="_blank" rel="noopener" class="hover:text-slate-300 transition-colors">PitchHut Showcase</a>
       <a href="https://doi.org/10.34740/KAGGLE/M/786779" target="_blank" rel="noopener" class="hover:text-slate-300 transition-colors">Kaggle Model DOI</a>
     </div>
-    <p>MAPLE Architecture by Aman Sachan. Open source under Apache 2.0. Verified without synthetic contact data.</p>
+    <p>MAPLE Architecture by <a href="https://linkedin.com/in/theamansachan" target="_blank" rel="noopener" class="text-slate-400 hover:text-white underline">Aman Sachan</a> (<a href="https://instagram.com/i.amsach" target="_blank" rel="noopener" class="hover:text-white">@i.amsach</a>). Open source under Apache 2.0.</p>
   </footer>
 
   <script>
