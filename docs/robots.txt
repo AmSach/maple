@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://amsach.github.io/maple/sitemap.xml
