@@ -37,6 +37,8 @@ library_name: gguf
 [![Interactive Site](https://img.shields.io/badge/Official%20Site-amsach.github.io%2Fmaple-indigo.svg)](https://amsach.github.io/maple/)
 [![Kaggle DOI](https://img.shields.io/badge/Kaggle%20DOI-10.34740%2FKAGGLE%2FM%2F786779-20BEFF.svg?logo=kaggle&logoColor=white)](https://doi.org/10.34740/KAGGLE/M/786779)
 [![MAPLE on LaunchNest](https://launchnest.io/badge/maple.svg?variant=featured)](https://launchnest.io/p/maple)
+[![Instagram](https://img.shields.io/badge/Instagram-i.amsach-E4405F.svg?logo=instagram&logoColor=white)](https://instagram.com/i.amsach)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-theamansachan-0A66C2.svg?logo=linkedin&logoColor=white)](https://linkedin.com/in/theamansachan)
 
 > **Sub-2-BPW Structural Compression for Mixture-of-Experts (MoE) LLMs**  
 > MAPLE compresses massive sparse MoE models into strictly sub-5GB containers, enabling **100% In-VRAM GPU Execution** on 6 GB consumer laptop GPUs with zero CPU or PCIe offloading:
