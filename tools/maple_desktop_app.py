@@ -765,6 +765,7 @@ class MapleDesktopWindow(QMainWindow):
         self.worker: Optional[AgentWorker] = None
         self.chat_markdown_blocks = []
         self.current_stream_buf = ""
+        self._last_chat_refresh_t = 0.0
         self.active_file_path = ""
         self.active_file_content = ""
         self.selected_model_key = "auto"
@@ -864,6 +865,7 @@ class MapleDesktopWindow(QMainWindow):
         # Left Pane Card: Workspace File Tree
         left_card = QFrame()
         left_card.setObjectName("PaneCard")
+        left_card.setMinimumWidth(220)
         self._apply_shadow(left_card)
         left_lay = QVBoxLayout(left_card)
         left_lay.setContentsMargins(8, 8, 8, 8)
@@ -887,6 +889,7 @@ class MapleDesktopWindow(QMainWindow):
         # Center Pane Card: Chat & Prompt
         center_widget = QFrame()
         center_widget.setObjectName("PaneCard")
+        center_widget.setMinimumWidth(400)
         self._apply_shadow(center_widget)
         center_layout = QVBoxLayout(center_widget)
         center_layout.setContentsMargins(10, 10, 10, 10)
@@ -930,6 +933,7 @@ class MapleDesktopWindow(QMainWindow):
         # Right Pane Card: Live Code / Diff + Rendered View + Terminal Log
         right_card = QFrame()
         right_card.setObjectName("PaneCard")
+        right_card.setMinimumWidth(380)
         self._apply_shadow(right_card)
         right_lay = QVBoxLayout(right_card)
         right_lay.setContentsMargins(8, 8, 8, 8)
@@ -952,7 +956,12 @@ class MapleDesktopWindow(QMainWindow):
 
         right_lay.addWidget(self.right_tabs, 1)
         splitter.addWidget(right_card)
-        splitter.setSizes([240, 620, 600])
+        
+        # Proportional splitter distribution across all 3 panes
+        splitter.setStretchFactor(0, 2)
+        splitter.setStretchFactor(1, 4)
+        splitter.setStretchFactor(2, 4)
+        splitter.setSizes([260, 600, 580])
 
         root_layout.addWidget(splitter, 1)
 
@@ -1138,7 +1147,11 @@ class MapleDesktopWindow(QMainWindow):
 
     def _on_token(self, tok: str):
         self.current_stream_buf += tok
-        self._refresh_chat_html()
+        now = time.time()
+        # Stream live every ~60ms without blocking or recursive event pumping
+        if now - self._last_chat_refresh_t > 0.06 or "\n" in tok or tok.endswith((".", ":", "`", "}", "]")):
+            self._last_chat_refresh_t = now
+            self._refresh_chat_html()
 
     def _on_file_written(self, path: str, content: str):
         self._show_file_in_right_pane(path, content, animate=True)
