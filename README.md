@@ -23,7 +23,7 @@ library_name: gguf
 # MAPLE: Manifold-Activated Pruning of Latent Experts
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24344217.svg)](https://doi.org/10.5281/zenodo.24344217)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24344372.svg)](https://doi.org/10.5281/zenodo.24344372)
 [![Google Scholar](https://img.shields.io/badge/Google%20Scholar-Aman%20Sachan-blue.svg)](https://scholar.google.com/citations?user=dfgiWLYAAAAJ&hl=en)
 [![Hugging Face Collection](https://img.shields.io/badge/Hugging%20Face-Official%20Collection-yellow.svg?logo=huggingface)](https://huggingface.co/collections/AmSach/maple-sub-5gb-mixture-of-experts-models-6af8467951c779a9e35a327e)
 [![Hugging Face DeepSeek](https://img.shields.io/badge/Hugging%20Face-DeepSeek%20Coder%20Sub--5GB-yellow.svg)](https://huggingface.co/AmSach/DeepSeek-Coder-V2-Lite-Instruct-MAPLE-Sub5GB-GGUF)
@@ -740,7 +740,7 @@ If you use MAPLE in your research or applications, please cite the corresponding
 
 ### APA:
 ```text
-Sachan, A. (2026). MAPLE: Manifold-Activated Pruning of Latent Experts for DeepSeek-Coder-V2-Lite. Zenodo. https://doi.org/10.5281/zenodo.24344217
+Sachan, A. (2026). MAPLE: Manifold-Activated Pruning of Latent Experts for DeepSeek-Coder-V2-Lite. Zenodo. https://doi.org/10.5281/zenodo.24344372
 Sachan, A. (2026). MAPLE: Gemma 4 26B Sub-5GB MoE. Kaggle. https://doi.org/10.34740/KAGGLE/M/786779
 ```
 
@@ -758,8 +758,8 @@ Sachan, A. (2026). MAPLE: Gemma 4 26B Sub-5GB MoE. Kaggle. https://doi.org/10.34
   author={Sachan, Aman},
   journal={Zenodo},
   year={2026},
-  doi={10.5281/zenodo.24344217},
-  url={https://doi.org/10.5281/zenodo.24344217}
+  doi={10.5281/zenodo.24344372},
+  url={https://doi.org/10.5281/zenodo.24344372}
 }
 
 @misc{sachan2026maple_kaggle,
