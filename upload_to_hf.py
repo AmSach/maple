@@ -35,7 +35,7 @@ library_name: gguf
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-theamansachan-0A66C2?logo=linkedin&logoColor=white)](https://linkedin.com/in/theamansachan)
 [![Instagram](https://img.shields.io/badge/Instagram-i.amsach-E4405F?logo=instagram&logoColor=white)](https://instagram.com/i.amsach)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24042480.svg)](https://doi.org/10.5281/zenodo.24042480)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24344217.svg)](https://doi.org/10.5281/zenodo.24344217)
 [![Google Scholar](https://img.shields.io/badge/Google%20Scholar-Aman%20Sachan-blue.svg)](https://scholar.google.com/citations?user=dfgiWLYAAAAJ&hl=en)
 [![Hugging Face](https://img.shields.io/badge/Hugging%20Face-AmSach%2Fmaple--4.75GB-yellow.svg)](https://huggingface.co/AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF)
 [![Direct Download](https://img.shields.io/badge/Direct%20Download-4.75%20GB%20GGUF-brightgreen.svg)](https://huggingface.co/AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF/resolve/main/gemma-4-26B-A4B-MAPLE-IQ2_XXS.gguf?download=true)
@@ -240,7 +240,7 @@ If you use MAPLE in your research or applications, please cite both the software
 
 ### APA:
 ```text
-Sachan, A. (2026). MAPLE: Manifold-Activated Pruning of Latent Experts. Zenodo. https://doi.org/10.5281/zenodo.24042480
+Sachan, A. (2026). MAPLE: Manifold-Activated Pruning of Latent Experts. Zenodo. https://doi.org/10.5281/zenodo.24344217
 Sachan, A. (2026). MAPLE: Gemma 4 26B Sub-5GB MoE. Kaggle. https://doi.org/10.34740/KAGGLE/M/786779
 ```
 
@@ -251,8 +251,8 @@ Sachan, A. (2026). MAPLE: Gemma 4 26B Sub-5GB MoE. Kaggle. https://doi.org/10.34
   author={Sachan, Aman},
   journal={Zenodo},
   year={2026},
-  doi={10.5281/zenodo.24042480},
-  url={https://doi.org/10.5281/zenodo.24042480}
+  doi={10.5281/zenodo.24344217},
+  url={https://doi.org/10.5281/zenodo.24344217}
 }
 
 @misc{sachan2026maple_kaggle,
