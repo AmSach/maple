@@ -1,0 +1,469 @@
+{
+  "model": "E:\\maple\\models\\Inkling-2-Mini-MAPLE-44exp-IQ3_XXS-uns.gguf",
+  "size_bytes": 4886433728,
+  "config": {
+    "model": "E:\\maple\\models\\Inkling-2-Mini-MAPLE-44exp-IQ3_XXS-uns.gguf",
+    "out_json": "E:\\maple\\logs\\bakeoff_iq3_44exp_uns.json",
+    "server_bin": "D:\\tools\\llama-cpp-mainline\\llama-server.exe",
+    "bench_bin": "D:\\tools\\llama-cpp-mainline\\llama-bench.exe",
+    "ppl_bin": "D:\\tools\\llama-cpp-mainline\\llama-perplexity.exe",
+    "port": 8097,
+    "ctx": 8192,
+    "ngl": 99,
+    "ncmoe": 0,
+    "ctk": "q8_0",
+    "ctv": "q8_0",
+    "temp": 1.0,
+    "top_p": 1.0,
+    "top_k": 0,
+    "min_p": 0.0,
+    "seed": 42,
+    "max_tokens": 1024,
+    "reasoning_effort": "low",
+    "reasoning_budget": 512,
+    "suites": "humaneval,gsm8k,arc_v1",
+    "limit_arc1": 15,
+    "limit_arc2": 60,
+    "limit_gw": 60,
+    "limit_lb": 25,
+    "limit_sr": 100,
+    "limit_fort": 100,
+    "limit_dsq": 100,
+    "limit_he": 25,
+    "limit_gsm": 25,
+    "gw_max_chars": 20000,
+    "ppl_chunks": 40,
+    "bench_reps": 10
+  },
+  "metrics": {
+    "humaneval": {
+      "n": 25,
+      "passed": 0,
+      "pass_at_1_pct": 0.0,
+      "ci95": [
+        0.0,
+        0.0
+      ],
+      "items": [
+        {
+          "task_id": "HumanEval/0",
+          "ok": false,
+          "elapsed_s": 70.513,
+          "comp_toks": 1920
+        },
+        {
+          "task_id": "HumanEval/1",
+          "ok": false,
+          "elapsed_s": 70.03,
+          "comp_toks": 1920
+        },
+        {
+          "task_id": "HumanEval/2",
+          "ok": false,
+          "elapsed_s": 54.342,
+          "comp_toks": 1536
+        },
+        {
+          "task_id": "HumanEval/3",
+          "ok": false,
+          "elapsed_s": 54.715,
+          "comp_toks": 1536
+        },
+        {
+          "task_id": "HumanEval/4",
+          "ok": false,
+          "elapsed_s": 54.681,
+          "comp_toks": 1536
+        },
+        {
+          "task_id": "HumanEval/5",
+          "ok": false,
+          "elapsed_s": 54.511,
+          "comp_toks": 1536
+        },
+        {
+          "task_id": "HumanEval/6",
+          "ok": false,
+          "elapsed_s": 55.142,
+          "comp_toks": 1536
+        },
+        {
+          "task_id": "HumanEval/7",
+          "ok": false,
+          "elapsed_s": 69.378,
+          "comp_toks": 1920
+        },
+        {
+          "task_id": "HumanEval/8",
+          "ok": false,
+          "elapsed_s": 69.515,
+          "comp_toks": 1920
+        },
+        {
+          "task_id": "HumanEval/9",
+          "ok": false,
+          "elapsed_s": 54.494,
+          "comp_toks": 1536
+        },
+        {
+          "task_id": "HumanEval/10",
+          "ok": false,
+          "elapsed_s": 70.004,
+          "comp_toks": 1920
+        },
+        {
+          "task_id": "HumanEval/11",
+          "ok": false,
+          "elapsed_s": 70.314,
+          "comp_toks": 1920
+        },
+        {
+          "task_id": "HumanEval/12",
+          "ok": false,
+          "elapsed_s": 69.682,
+          "comp_toks": 1920
+        },
+        {
+          "task_id": "HumanEval/13",
+          "ok": false,
+          "elapsed_s": 70.006,
+          "comp_toks": 1920
+        },
+        {
+          "task_id": "HumanEval/14",
+          "ok": false,
+          "elapsed_s": 68.916,
+          "comp_toks": 1920
+        },
+        {
+          "task_id": "HumanEval/15",
+          "ok": false,
+          "elapsed_s": 69.7,
+          "comp_toks": 1920
+        },
+        {
+          "task_id": "HumanEval/16",
+          "ok": false,
+          "elapsed_s": 55.2,
+          "comp_toks": 1536
+        },
+        {
+          "task_id": "HumanEval/17",
+          "ok": false,
+          "elapsed_s": 71.056,
+          "comp_toks": 1920
+        },
+        {
+          "task_id": "HumanEval/18",
+          "ok": false,
+          "elapsed_s": 69.736,
+          "comp_toks": 1920
+        },
+        {
+          "task_id": "HumanEval/19",
+          "ok": false,
+          "elapsed_s": 69.485,
+          "comp_toks": 1920
+        },
+        {
+          "task_id": "HumanEval/20",
+          "ok": false,
+          "elapsed_s": 56.322,
+          "comp_toks": 1536
+        },
+        {
+          "task_id": "HumanEval/21",
+          "ok": false,
+          "elapsed_s": 2.033,
+          "comp_toks": 0
+        },
+        {
+          "task_id": "HumanEval/22",
+          "ok": false,
+          "elapsed_s": 2.038,
+          "comp_toks": 0
+        },
+        {
+          "task_id": "HumanEval/23",
+          "ok": false,
+          "elapsed_s": 2.073,
+          "comp_toks": 0
+        },
+        {
+          "task_id": "HumanEval/24",
+          "ok": false,
+          "elapsed_s": 2.05,
+          "comp_toks": 0
+        }
+      ]
+    },
+    "gsm8k": {
+      "n": 25,
+      "correct": 0,
+      "acc_pct": 0.0,
+      "ci95": [
+        0.0,
+        0.0
+      ],
+      "items": [
+        {
+          "idx": 0,
+          "ok": false,
+          "elapsed_s": 2.028
+        },
+        {
+          "idx": 1,
+          "ok": false,
+          "elapsed_s": 2.047
+        },
+        {
+          "idx": 2,
+          "ok": false,
+          "elapsed_s": 2.029
+        },
+        {
+          "idx": 3,
+          "ok": false,
+          "elapsed_s": 2.036
+        },
+        {
+          "idx": 4,
+          "ok": false,
+          "elapsed_s": 2.031
+        },
+        {
+          "idx": 5,
+          "ok": false,
+          "elapsed_s": 2.037
+        },
+        {
+          "idx": 6,
+          "ok": false,
+          "elapsed_s": 2.066
+        },
+        {
+          "idx": 7,
+          "ok": false,
+          "elapsed_s": 2.021
+        },
+        {
+          "idx": 8,
+          "ok": false,
+          "elapsed_s": 2.028
+        },
+        {
+          "idx": 9,
+          "ok": false,
+          "elapsed_s": 2.022
+        },
+        {
+          "idx": 10,
+          "ok": false,
+          "elapsed_s": 2.016
+        },
+        {
+          "idx": 11,
+          "ok": false,
+          "elapsed_s": 2.022
+        },
+        {
+          "idx": 12,
+          "ok": false,
+          "elapsed_s": 2.023
+        },
+        {
+          "idx": 13,
+          "ok": false,
+          "elapsed_s": 2.021
+        },
+        {
+          "idx": 14,
+          "ok": false,
+          "elapsed_s": 2.021
+        },
+        {
+          "idx": 15,
+          "ok": false,
+          "elapsed_s": 2.01
+        },
+        {
+          "idx": 16,
+          "ok": false,
+          "elapsed_s": 2.015
+        },
+        {
+          "idx": 17,
+          "ok": false,
+          "elapsed_s": 2.015
+        },
+        {
+          "idx": 18,
+          "ok": false,
+          "elapsed_s": 2.01
+        },
+        {
+          "idx": 19,
+          "ok": false,
+          "elapsed_s": 2.01
+        },
+        {
+          "idx": 20,
+          "ok": false,
+          "elapsed_s": 2.014
+        },
+        {
+          "idx": 21,
+          "ok": false,
+          "elapsed_s": 2.012
+        },
+        {
+          "idx": 22,
+          "ok": false,
+          "elapsed_s": 2.008
+        },
+        {
+          "idx": 23,
+          "ok": false,
+          "elapsed_s": 2.02
+        },
+        {
+          "idx": 24,
+          "ok": false,
+          "elapsed_s": 2.011
+        }
+      ]
+    },
+    "arc_v1": {
+      "n": 15,
+      "correct": 0,
+      "skipped_ctx": 15,
+      "acc_pct": 0.0,
+      "ci95": [
+        0.0,
+        0.0
+      ],
+      "items": [
+        {
+          "id": "00576224.json",
+          "ok": false,
+          "elapsed_s": 2.004,
+          "comp_toks": 0,
+          "has_content": false,
+          "error": "Request error: <urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>"
+        },
+        {
+          "id": "009d5c81.json",
+          "ok": false,
+          "elapsed_s": 2.023,
+          "comp_toks": 0,
+          "has_content": false,
+          "error": "Request error: <urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>"
+        },
+        {
+          "id": "00dbd492.json",
+          "ok": false,
+          "elapsed_s": 2.009,
+          "comp_toks": 0,
+          "has_content": false,
+          "error": "Request error: <urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>"
+        },
+        {
+          "id": "03560426.json",
+          "ok": false,
+          "elapsed_s": 2.016,
+          "comp_toks": 0,
+          "has_content": false,
+          "error": "Request error: <urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>"
+        },
+        {
+          "id": "05a7bcf2.json",
+          "ok": false,
+          "elapsed_s": 2.041,
+          "comp_toks": 0,
+          "has_content": false,
+          "error": "Request error: <urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>"
+        },
+        {
+          "id": "0607ce86.json",
+          "ok": false,
+          "elapsed_s": 2.052,
+          "comp_toks": 0,
+          "has_content": false,
+          "error": "Request error: <urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>"
+        },
+        {
+          "id": "0692e18c.json",
+          "ok": false,
+          "elapsed_s": 2.031,
+          "comp_toks": 0,
+          "has_content": false,
+          "error": "Request error: <urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>"
+        },
+        {
+          "id": "070dd51e.json",
+          "ok": false,
+          "elapsed_s": 2.025,
+          "comp_toks": 0,
+          "has_content": false,
+          "error": "Request error: <urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>"
+        },
+        {
+          "id": "08573cc6.json",
+          "ok": false,
+          "elapsed_s": 2.056,
+          "comp_toks": 0,
+          "has_content": false,
+          "error": "Request error: <urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>"
+        },
+        {
+          "id": "0934a4d8.json",
+          "ok": false,
+          "elapsed_s": 2.042,
+          "comp_toks": 0,
+          "has_content": false,
+          "error": "Request error: <urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>"
+        },
+        {
+          "id": "09c534e7.json",
+          "ok": false,
+          "elapsed_s": 2.05,
+          "comp_toks": 0,
+          "has_content": false,
+          "error": "Request error: <urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>"
+        },
+        {
+          "id": "0a1d4ef5.json",
+          "ok": false,
+          "elapsed_s": 2.06,
+          "comp_toks": 0,
+          "has_content": false,
+          "error": "Request error: <urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>"
+        },
+        {
+          "id": "0a2355a6.json",
+          "ok": false,
+          "elapsed_s": 2.04,
+          "comp_toks": 0,
+          "has_content": false,
+          "error": "Request error: <urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>"
+        },
+        {
+          "id": "0b17323b.json",
+          "ok": false,
+          "elapsed_s": 2.036,
+          "comp_toks": 0,
+          "has_content": false,
+          "error": "Request error: <urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>"
+        },
+        {
+          "id": "0bb8deee.json",
+          "ok": false,
+          "elapsed_s": 2.028,
+          "comp_toks": 0,
+          "has_content": false,
+          "error": "Request error: <urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>"
+        }
+      ]
+    }
+  }
+}

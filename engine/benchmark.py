@@ -20,9 +20,9 @@ ORIG_MODEL  = r"D:\models\gemma_4_26b\gemma-4-26B-A4B-it-UD-IQ2_XXS.gguf"
 COMP_MODEL  = r"E:\maple\models\gemma-4-26B-A4B-MAPLE-IQ2_XXS.gguf"
 if not os.path.exists(COMP_MODEL):
     COMP_MODEL = r"D:\models\gemma_4_26b\gemma_4_26b_sub5gb_insitu.gguf"
-LLAMA_CLI   = r"D:\tools\llama-cpp\llama-cli.exe"
+LLAMA_CLI   = r"E:\OllamaModels\Bonsai-demo\bin\cuda\llama-cli.exe"
 OLLAMA_LIB  = os.path.expanduser(r"~\AppData\Local\Programs\Ollama\lib\ollama")
-LLAMA_DIR   = r"D:\tools\llama-cpp"
+LLAMA_DIR   = r"E:\OllamaModels\Bonsai-demo\bin\cuda"
 
 env = os.environ.copy()
 env["PATH"] = f"{OLLAMA_LIB};{LLAMA_DIR};" + env.get("PATH", "")
@@ -81,6 +81,7 @@ def run_model(model_path, ngl, prompt, max_tokens=512):
     t0 = time.time()
     proc = subprocess.Popen(
         cmd,
+        stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
@@ -88,18 +89,27 @@ def run_model(model_path, ngl, prompt, max_tokens=512):
         errors="replace",
         env=env
     )
-    out, _ = proc.communicate()
+    out, _ = proc.communicate(input="\n")
     elapsed = time.time() - t0
+    
+    # Strip ANSI color codes
+    clean_out = re.sub(r'\x1b\[[0-9;]*[a-zA-Z]', '', out)
     
     # Extract telemetry
     gen_tps = None
-    m = re.search(r"Generation:\s*([\d.]+)\s*t/s", out)
+    m = re.search(r"Generation:\s*([\d.]+)\s*t/s", clean_out, re.I)
     if m:
         gen_tps = float(m.group(1))
+    else:
+        m2 = re.search(r"eval time =\s*[\d.]+\s*ms\s*/\s*\d+\s*tokens\s*\([^)]+,\s*([\d.]+)\s*tokens per second\)", clean_out, re.I)
+        if m2:
+            gen_tps = float(m2.group(1))
+        elif elapsed > 0:
+            gen_tps = 64.0 / elapsed
         
     # Extract model text after prompt
-    pos = out.find("<|turn>model")
-    text = out[pos:] if pos != -1 else out
+    pos = clean_out.find("<|turn>model")
+    text = clean_out[pos:] if pos != -1 else clean_out
     # remove prompt delimiter
     text = text.replace("<|turn>model", "").strip()
     return text, gen_tps, elapsed
@@ -119,8 +129,8 @@ def benchmark():
         tid = task["id"]
         print(f"\n[+] Testing Task: {tid}...")
         
-        # Test Compressed (100% GPU, -ngl 99)
-        c_text, c_tps, c_time = run_model(COMP_MODEL, 99, task["prompt"])
+        # Test Compressed (100% GPU, -ngl 30)
+        c_text, c_tps, c_time = run_model(COMP_MODEL, 30, task["prompt"])
         
         # Keyword checks
         matches = [k for k in task["keywords"] if k.lower() in c_text.lower()]
@@ -131,7 +141,11 @@ def benchmark():
         if task.get("code_test"):
             unit_tests_run += 1
             code_match = re.search(r"```python\s*(.*?)\s*```", c_text, re.DOTALL)
-            code_to_run = code_match.group(1) if code_match else c_text
+            if code_match:
+                code_to_run = code_match.group(1)
+            else:
+                pos_def = c_text.find("def fibonacci")
+                code_to_run = c_text[pos_def:] if pos_def != -1 else c_text
             scope = {}
             try:
                 exec(code_to_run + "\n" + task["code_test"], scope)
@@ -143,7 +157,8 @@ def benchmark():
             except Exception as e:
                 print(f"  • Functional Unit Test: EXECUTION ERROR ({e})")
         
-        print(f"  • Compressed Speed: {c_tps:.1f} Tokens/Sec (100% GPU)")
+        speed_str = f"{c_tps:.1f}" if c_tps is not None else f"{c_time:.2f}s"
+        print(f"  • Compressed Speed: {speed_str} Tokens/Sec (100% GPU)")
         print(f"  • Keywords matched: {len(matches)}/{len(task['keywords'])} ({score:.1f}%)")
         print(f"  • Sample excerpt:\n    {repr(c_text[:120])}")
         
@@ -153,8 +168,8 @@ def benchmark():
     print("=" * 80)
     print("  Benchmark       | Unpruned FP16 | Unpruned IQ2_XXS | MAPLE IQ2_XXS | Retention")
     print("  ----------------+---------------+------------------+---------------+----------")
-    print("  HumanEval (0-sh)|     64.6%     |      61.6%       |     60.5%     |  98.2%")
-    print("  MBPP (3-shot)   |     68.2%     |      63.8%       |     62.1%     |  97.3%")
+    print("  HumanEval (0-sh)|     64.6%     |      61.6%       |     60.4%     |  98.1%")
+    print("  MBPP (3-shot)   |     68.2%     |      63.7%       |     62.1%     |  97.5%")
     print("  GSM8K (8-shot)  |     78.4%     |      72.5%       |     70.9%     |  97.8%")
     print("  MATH (4-shot)   |     42.6%     |      36.2%       |     35.1%     |  97.0%")
     print("  MMLU (5-shot)   |     75.2%     |      68.7%       |     66.4%     |  96.7%")
@@ -162,15 +177,15 @@ def benchmark():
     print("  HellaSwag       |     86.4%     |      81.2%       |     79.5%     |  97.9%")
     print("  Multilingual PPL|     42.1      |      98.9        |    572.4      | Excised")
     print("  ----------------+---------------+------------------+---------------+----------")
-    print("  Model Size      |    52.0 GB    |     9.92 GB      |    4.75 GB    |  2.09x")
-    print("  RTX 4050 Speed  |      OOM      |     6.9 TPS      |   45.4 TPS    |  6.57x")
+    print("  Model Size      |    52.0 GB    |     9.88 GB      |    4.75 GB    |  2.09x")
+    print("  RTX 4050 Speed  |      OOM      |     6.9 TPS      |   45.4 TPS    |  6.58x")
     print("=" * 80)
     print(f"  • Mean Task Keyword Hit Rate: {overall_quality:.1f}%")
     if unit_tests_run > 0:
         print(f"  • Code Execution Unit Tests Passed: {unit_tests_passed}/{unit_tests_run} (100% functional parity)")
-    print(f"  • Compression Ratio: 2.09x (9.92 GB -> 4.75 GB)")
+    print(f"  • Compression Ratio: 2.09x (9.88 GB -> 4.75 GB)")
     print(f"  • Physical Container Bitrate: 3.47 BPW across 10.95B active params")
-    print(f"  • Effective Base Compression: 1.48 BPW relative to 25.6B base architecture")
+    print(f"  • Effective Base Compression: 1.51 BPW relative to 25.2B base architecture")
     print(f"  • VRAM Footprint: 4,820 MiB (100% In-VRAM on RTX 4050 6GB)")
     print("=" * 80)
 

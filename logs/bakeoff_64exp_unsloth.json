@@ -1,0 +1,253 @@
+{
+  "model": "D:\\models\\inkling2_maple\\Inkling-2-Mini-MAPLE-64exp-IQ2_XXS.gguf",
+  "size_bytes": 4846417344,
+  "config": {
+    "model": "D:\\models\\inkling2_maple\\Inkling-2-Mini-MAPLE-64exp-IQ2_XXS.gguf",
+    "out_json": "E:\\maple\\logs\\bakeoff_64exp_unsloth.json",
+    "server_bin": "D:\\tools\\llama-cpp-mainline\\llama-server.exe",
+    "bench_bin": "D:\\tools\\llama-cpp-mainline\\llama-bench.exe",
+    "ppl_bin": "D:\\tools\\llama-cpp-mainline\\llama-perplexity.exe",
+    "port": 8097,
+    "ctx": 8192,
+    "ngl": 99,
+    "ncmoe": 0,
+    "ctk": "q8_0",
+    "ctv": "q8_0",
+    "temp": 1.0,
+    "top_p": 1.0,
+    "top_k": 0,
+    "min_p": 0.0,
+    "seed": 42,
+    "max_tokens": 1280,
+    "reasoning_effort": "low",
+    "reasoning_budget": -1,
+    "suites": "humaneval,arc_v1",
+    "limit_arc1": 10,
+    "limit_arc2": 60,
+    "limit_gw": 60,
+    "limit_lb": 25,
+    "limit_sr": 100,
+    "limit_fort": 100,
+    "limit_dsq": 100,
+    "limit_he": 20,
+    "limit_gsm": 100,
+    "gw_max_chars": 20000,
+    "ppl_chunks": 40,
+    "bench_reps": 10
+  },
+  "metrics": {
+    "humaneval": {
+      "n": 20,
+      "passed": 0,
+      "pass_at_1_pct": 0.0,
+      "ci95": [
+        0.0,
+        0.0
+      ],
+      "items": [
+        {
+          "task_id": "HumanEval/0",
+          "ok": false,
+          "elapsed_s": 38.406,
+          "comp_toks": 1280
+        },
+        {
+          "task_id": "HumanEval/1",
+          "ok": false,
+          "elapsed_s": 38.024,
+          "comp_toks": 1280
+        },
+        {
+          "task_id": "HumanEval/2",
+          "ok": false,
+          "elapsed_s": 38.233,
+          "comp_toks": 1280
+        },
+        {
+          "task_id": "HumanEval/3",
+          "ok": false,
+          "elapsed_s": 38.736,
+          "comp_toks": 1280
+        },
+        {
+          "task_id": "HumanEval/4",
+          "ok": false,
+          "elapsed_s": 39.116,
+          "comp_toks": 1280
+        },
+        {
+          "task_id": "HumanEval/5",
+          "ok": false,
+          "elapsed_s": 38.654,
+          "comp_toks": 1280
+        },
+        {
+          "task_id": "HumanEval/6",
+          "ok": false,
+          "elapsed_s": 38.708,
+          "comp_toks": 1280
+        },
+        {
+          "task_id": "HumanEval/7",
+          "ok": false,
+          "elapsed_s": 39.042,
+          "comp_toks": 1280
+        },
+        {
+          "task_id": "HumanEval/8",
+          "ok": false,
+          "elapsed_s": 39.275,
+          "comp_toks": 1280
+        },
+        {
+          "task_id": "HumanEval/9",
+          "ok": false,
+          "elapsed_s": 38.802,
+          "comp_toks": 1280
+        },
+        {
+          "task_id": "HumanEval/10",
+          "ok": false,
+          "elapsed_s": 39.609,
+          "comp_toks": 1280
+        },
+        {
+          "task_id": "HumanEval/11",
+          "ok": false,
+          "elapsed_s": 39.401,
+          "comp_toks": 1280
+        },
+        {
+          "task_id": "HumanEval/12",
+          "ok": false,
+          "elapsed_s": 39.109,
+          "comp_toks": 1280
+        },
+        {
+          "task_id": "HumanEval/13",
+          "ok": false,
+          "elapsed_s": 38.564,
+          "comp_toks": 1280
+        },
+        {
+          "task_id": "HumanEval/14",
+          "ok": false,
+          "elapsed_s": 38.38,
+          "comp_toks": 1280
+        },
+        {
+          "task_id": "HumanEval/15",
+          "ok": false,
+          "elapsed_s": 39.055,
+          "comp_toks": 1280
+        },
+        {
+          "task_id": "HumanEval/16",
+          "ok": false,
+          "elapsed_s": 23.684,
+          "comp_toks": 771
+        },
+        {
+          "task_id": "HumanEval/17",
+          "ok": false,
+          "elapsed_s": 39.499,
+          "comp_toks": 1280
+        },
+        {
+          "task_id": "HumanEval/18",
+          "ok": false,
+          "elapsed_s": 38.833,
+          "comp_toks": 1280
+        },
+        {
+          "task_id": "HumanEval/19",
+          "ok": false,
+          "elapsed_s": 39.122,
+          "comp_toks": 1280
+        }
+      ]
+    },
+    "arc_v1": {
+      "n": 10,
+      "correct": 0,
+      "skipped_ctx": 0,
+      "acc_pct": 0.0,
+      "ci95": [
+        0.0,
+        0.0
+      ],
+      "items": [
+        {
+          "id": "00576224.json",
+          "ok": false,
+          "elapsed_s": 39.154,
+          "comp_toks": 1280,
+          "error": null
+        },
+        {
+          "id": "009d5c81.json",
+          "ok": false,
+          "elapsed_s": 41.688,
+          "comp_toks": 1280,
+          "error": null
+        },
+        {
+          "id": "00dbd492.json",
+          "ok": false,
+          "elapsed_s": 40.521,
+          "comp_toks": 1280,
+          "error": null
+        },
+        {
+          "id": "03560426.json",
+          "ok": false,
+          "elapsed_s": 39.573,
+          "comp_toks": 1280,
+          "error": null
+        },
+        {
+          "id": "05a7bcf2.json",
+          "ok": false,
+          "elapsed_s": 46.978,
+          "comp_toks": 1280,
+          "error": null
+        },
+        {
+          "id": "0607ce86.json",
+          "ok": false,
+          "elapsed_s": 43.19,
+          "comp_toks": 1280,
+          "error": null
+        },
+        {
+          "id": "0692e18c.json",
+          "ok": false,
+          "elapsed_s": 38.655,
+          "comp_toks": 1280,
+          "error": null
+        },
+        {
+          "id": "070dd51e.json",
+          "ok": false,
+          "elapsed_s": 41.19,
+          "comp_toks": 1280,
+          "error": null
+        },
+        {
+          "id": "08573cc6.json",
+          "ok": false,
+          "elapsed_s": 39.97,
+          "comp_toks": 1280,
+          "error": null
+        },
+        {
+          "id": "0934a4d8.json",
+          "ok": false,
+          "elapsed_s": 44.284,
+          "comp_toks": 1280,
+          "error": null
+        }
+      ]
+    }
+  }
+}

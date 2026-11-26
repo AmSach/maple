@@ -1,0 +1,253 @@
+{
+  "model": "E:\\maple\\models\\Inkling-2-Mini-MAPLE-64exp-Blended-IQ2_XXS.gguf",
+  "size_bytes": 4846417344,
+  "config": {
+    "model": "E:\\maple\\models\\Inkling-2-Mini-MAPLE-64exp-Blended-IQ2_XXS.gguf",
+    "out_json": "E:\\maple\\logs\\bakeoff_64exp_blended.json",
+    "server_bin": "D:\\tools\\llama-cpp-mainline\\llama-server.exe",
+    "bench_bin": "D:\\tools\\llama-cpp-mainline\\llama-bench.exe",
+    "ppl_bin": "D:\\tools\\llama-cpp-mainline\\llama-perplexity.exe",
+    "port": 8097,
+    "ctx": 8192,
+    "ngl": 99,
+    "ncmoe": 0,
+    "ctk": "q8_0",
+    "ctv": "q8_0",
+    "temp": 1.0,
+    "top_p": 1.0,
+    "top_k": 0,
+    "min_p": 0.0,
+    "seed": 42,
+    "max_tokens": 1280,
+    "reasoning_effort": "low",
+    "reasoning_budget": -1,
+    "suites": "humaneval,arc_v1",
+    "limit_arc1": 10,
+    "limit_arc2": 60,
+    "limit_gw": 60,
+    "limit_lb": 25,
+    "limit_sr": 100,
+    "limit_fort": 100,
+    "limit_dsq": 100,
+    "limit_he": 20,
+    "limit_gsm": 100,
+    "gw_max_chars": 20000,
+    "ppl_chunks": 40,
+    "bench_reps": 10
+  },
+  "metrics": {
+    "humaneval": {
+      "n": 20,
+      "passed": 14,
+      "pass_at_1_pct": 70.0,
+      "ci95": [
+        50.0,
+        90.0
+      ],
+      "items": [
+        {
+          "task_id": "HumanEval/0",
+          "ok": true,
+          "elapsed_s": 12.731,
+          "comp_toks": 395
+        },
+        {
+          "task_id": "HumanEval/1",
+          "ok": false,
+          "elapsed_s": 38.546,
+          "comp_toks": 1280
+        },
+        {
+          "task_id": "HumanEval/2",
+          "ok": true,
+          "elapsed_s": 8.808,
+          "comp_toks": 283
+        },
+        {
+          "task_id": "HumanEval/3",
+          "ok": true,
+          "elapsed_s": 17.567,
+          "comp_toks": 587
+        },
+        {
+          "task_id": "HumanEval/4",
+          "ok": true,
+          "elapsed_s": 10.163,
+          "comp_toks": 335
+        },
+        {
+          "task_id": "HumanEval/5",
+          "ok": true,
+          "elapsed_s": 17.29,
+          "comp_toks": 582
+        },
+        {
+          "task_id": "HumanEval/6",
+          "ok": false,
+          "elapsed_s": 39.236,
+          "comp_toks": 1280
+        },
+        {
+          "task_id": "HumanEval/7",
+          "ok": true,
+          "elapsed_s": 6.498,
+          "comp_toks": 202
+        },
+        {
+          "task_id": "HumanEval/8",
+          "ok": true,
+          "elapsed_s": 10.732,
+          "comp_toks": 354
+        },
+        {
+          "task_id": "HumanEval/9",
+          "ok": true,
+          "elapsed_s": 11.467,
+          "comp_toks": 378
+        },
+        {
+          "task_id": "HumanEval/10",
+          "ok": false,
+          "elapsed_s": 38.773,
+          "comp_toks": 1280
+        },
+        {
+          "task_id": "HumanEval/11",
+          "ok": false,
+          "elapsed_s": 20.064,
+          "comp_toks": 668
+        },
+        {
+          "task_id": "HumanEval/12",
+          "ok": true,
+          "elapsed_s": 8.745,
+          "comp_toks": 285
+        },
+        {
+          "task_id": "HumanEval/13",
+          "ok": true,
+          "elapsed_s": 25.898,
+          "comp_toks": 875
+        },
+        {
+          "task_id": "HumanEval/14",
+          "ok": true,
+          "elapsed_s": 7.583,
+          "comp_toks": 245
+        },
+        {
+          "task_id": "HumanEval/15",
+          "ok": true,
+          "elapsed_s": 7.558,
+          "comp_toks": 249
+        },
+        {
+          "task_id": "HumanEval/16",
+          "ok": false,
+          "elapsed_s": 38.764,
+          "comp_toks": 1280
+        },
+        {
+          "task_id": "HumanEval/17",
+          "ok": false,
+          "elapsed_s": 38.952,
+          "comp_toks": 1280
+        },
+        {
+          "task_id": "HumanEval/18",
+          "ok": true,
+          "elapsed_s": 21.316,
+          "comp_toks": 711
+        },
+        {
+          "task_id": "HumanEval/19",
+          "ok": true,
+          "elapsed_s": 19.473,
+          "comp_toks": 641
+        }
+      ]
+    },
+    "arc_v1": {
+      "n": 10,
+      "correct": 0,
+      "skipped_ctx": 0,
+      "acc_pct": 0.0,
+      "ci95": [
+        0.0,
+        0.0
+      ],
+      "items": [
+        {
+          "id": "00576224.json",
+          "ok": false,
+          "elapsed_s": 38.29,
+          "comp_toks": 1280,
+          "error": null
+        },
+        {
+          "id": "009d5c81.json",
+          "ok": false,
+          "elapsed_s": 41.367,
+          "comp_toks": 1280,
+          "error": null
+        },
+        {
+          "id": "00dbd492.json",
+          "ok": false,
+          "elapsed_s": 40.023,
+          "comp_toks": 1280,
+          "error": null
+        },
+        {
+          "id": "03560426.json",
+          "ok": false,
+          "elapsed_s": 39.953,
+          "comp_toks": 1280,
+          "error": null
+        },
+        {
+          "id": "05a7bcf2.json",
+          "ok": false,
+          "elapsed_s": 46.344,
+          "comp_toks": 1280,
+          "error": null
+        },
+        {
+          "id": "0607ce86.json",
+          "ok": false,
+          "elapsed_s": 43.122,
+          "comp_toks": 1280,
+          "error": null
+        },
+        {
+          "id": "0692e18c.json",
+          "ok": false,
+          "elapsed_s": 38.731,
+          "comp_toks": 1280,
+          "error": null
+        },
+        {
+          "id": "070dd51e.json",
+          "ok": false,
+          "elapsed_s": 41.706,
+          "comp_toks": 1280,
+          "error": null
+        },
+        {
+          "id": "08573cc6.json",
+          "ok": false,
+          "elapsed_s": 39.897,
+          "comp_toks": 1280,
+          "error": null
+        },
+        {
+          "id": "0934a4d8.json",
+          "ok": false,
+          "elapsed_s": 44.134,
+          "comp_toks": 1280,
+          "error": null
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,263 @@
+{
+  "model": "E:\\maple\\models\\Inkling-2-Mini-MAPLE-64exp-Work-IQ2_XXS.gguf",
+  "size_bytes": 4846417344,
+  "config": {
+    "model": "E:\\maple\\models\\Inkling-2-Mini-MAPLE-64exp-Work-IQ2_XXS.gguf",
+    "out_json": "E:\\maple\\logs\\bakeoff_64exp_work.json",
+    "server_bin": "D:\\tools\\llama-cpp-mainline\\llama-server.exe",
+    "bench_bin": "D:\\tools\\llama-cpp-mainline\\llama-bench.exe",
+    "ppl_bin": "D:\\tools\\llama-cpp-mainline\\llama-perplexity.exe",
+    "port": 8097,
+    "ctx": 8192,
+    "ngl": 99,
+    "ncmoe": 0,
+    "ctk": "q8_0",
+    "ctv": "q8_0",
+    "temp": 1.0,
+    "top_p": 1.0,
+    "top_k": 0,
+    "min_p": 0.0,
+    "seed": 42,
+    "max_tokens": 1280,
+    "reasoning_effort": "low",
+    "reasoning_budget": -1,
+    "suites": "humaneval,arc_v1",
+    "limit_arc1": 10,
+    "limit_arc2": 60,
+    "limit_gw": 60,
+    "limit_lb": 25,
+    "limit_sr": 100,
+    "limit_fort": 100,
+    "limit_dsq": 100,
+    "limit_he": 20,
+    "limit_gsm": 100,
+    "gw_max_chars": 20000,
+    "ppl_chunks": 40,
+    "bench_reps": 10
+  },
+  "metrics": {
+    "humaneval": {
+      "n": 20,
+      "passed": 16,
+      "pass_at_1_pct": 80.0,
+      "ci95": [
+        60.0,
+        95.0
+      ],
+      "items": [
+        {
+          "task_id": "HumanEval/0",
+          "ok": true,
+          "elapsed_s": 4.577,
+          "comp_toks": 121
+        },
+        {
+          "task_id": "HumanEval/1",
+          "ok": false,
+          "elapsed_s": 46.239,
+          "comp_toks": 1536
+        },
+        {
+          "task_id": "HumanEval/2",
+          "ok": true,
+          "elapsed_s": 7.963,
+          "comp_toks": 258
+        },
+        {
+          "task_id": "HumanEval/3",
+          "ok": true,
+          "elapsed_s": 2.945,
+          "comp_toks": 89
+        },
+        {
+          "task_id": "HumanEval/4",
+          "ok": true,
+          "elapsed_s": 4.292,
+          "comp_toks": 127
+        },
+        {
+          "task_id": "HumanEval/5",
+          "ok": true,
+          "elapsed_s": 7.332,
+          "comp_toks": 228
+        },
+        {
+          "task_id": "HumanEval/6",
+          "ok": false,
+          "elapsed_s": 25.031,
+          "comp_toks": 816
+        },
+        {
+          "task_id": "HumanEval/7",
+          "ok": true,
+          "elapsed_s": 4.683,
+          "comp_toks": 142
+        },
+        {
+          "task_id": "HumanEval/8",
+          "ok": false,
+          "elapsed_s": 7.001,
+          "comp_toks": 213
+        },
+        {
+          "task_id": "HumanEval/9",
+          "ok": true,
+          "elapsed_s": 5.365,
+          "comp_toks": 172
+        },
+        {
+          "task_id": "HumanEval/10",
+          "ok": false,
+          "elapsed_s": 47.155,
+          "comp_toks": 1536
+        },
+        {
+          "task_id": "HumanEval/11",
+          "ok": true,
+          "elapsed_s": 17.711,
+          "comp_toks": 593
+        },
+        {
+          "task_id": "HumanEval/12",
+          "ok": true,
+          "elapsed_s": 10.067,
+          "comp_toks": 325
+        },
+        {
+          "task_id": "HumanEval/13",
+          "ok": true,
+          "elapsed_s": 11.747,
+          "comp_toks": 385
+        },
+        {
+          "task_id": "HumanEval/14",
+          "ok": true,
+          "elapsed_s": 3.717,
+          "comp_toks": 117
+        },
+        {
+          "task_id": "HumanEval/15",
+          "ok": true,
+          "elapsed_s": 2.443,
+          "comp_toks": 72
+        },
+        {
+          "task_id": "HumanEval/16",
+          "ok": true,
+          "elapsed_s": 13.125,
+          "comp_toks": 432
+        },
+        {
+          "task_id": "HumanEval/17",
+          "ok": true,
+          "elapsed_s": 19.093,
+          "comp_toks": 625
+        },
+        {
+          "task_id": "HumanEval/18",
+          "ok": true,
+          "elapsed_s": 9.897,
+          "comp_toks": 326
+        },
+        {
+          "task_id": "HumanEval/19",
+          "ok": true,
+          "elapsed_s": 13.873,
+          "comp_toks": 459
+        }
+      ]
+    },
+    "arc_v1": {
+      "n": 10,
+      "correct": 0,
+      "skipped_ctx": 1,
+      "acc_pct": 0.0,
+      "ci95": [
+        0.0,
+        0.0
+      ],
+      "items": [
+        {
+          "id": "00576224.json",
+          "ok": false,
+          "elapsed_s": 62.825,
+          "comp_toks": 2048,
+          "has_content": false,
+          "error": null
+        },
+        {
+          "id": "009d5c81.json",
+          "ok": false,
+          "elapsed_s": 38.337,
+          "comp_toks": 1137,
+          "has_content": true,
+          "error": null
+        },
+        {
+          "id": "00dbd492.json",
+          "ok": false,
+          "elapsed_s": 65.273,
+          "comp_toks": 2048,
+          "has_content": false,
+          "error": null
+        },
+        {
+          "id": "03560426.json",
+          "ok": false,
+          "elapsed_s": 63.963,
+          "comp_toks": 2048,
+          "has_content": false,
+          "error": null
+        },
+        {
+          "id": "05a7bcf2.json",
+          "ok": false,
+          "elapsed_s": 69.515,
+          "comp_toks": 2048,
+          "has_content": false,
+          "error": null
+        },
+        {
+          "id": "0607ce86.json",
+          "ok": false,
+          "elapsed_s": 74.657,
+          "comp_toks": 2232,
+          "has_content": true,
+          "error": null
+        },
+        {
+          "id": "0692e18c.json",
+          "ok": false,
+          "elapsed_s": 49.117,
+          "comp_toks": 1598,
+          "has_content": true,
+          "error": null
+        },
+        {
+          "id": "070dd51e.json",
+          "ok": false,
+          "elapsed_s": 65.566,
+          "comp_toks": 2048,
+          "has_content": false,
+          "error": null
+        },
+        {
+          "id": "08573cc6.json",
+          "ok": false,
+          "elapsed_s": 68.486,
+          "comp_toks": 2114,
+          "has_content": true,
+          "error": null
+        },
+        {
+          "id": "0934a4d8.json",
+          "ok": false,
+          "elapsed_s": 4.908,
+          "comp_toks": 0,
+          "has_content": false,
+          "error": "HTTP 500: {\"error\":{\"code\":500,\"message\":\"got exception: bad allocation\",\"type\":\"server_error\"}}"
+        }
+      ]
+    }
+  }
+}

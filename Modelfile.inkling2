@@ -1,0 +1,14 @@
+FROM ./Inkling-2-Mini-MAPLE-56exp-IQ2_XXS.gguf
+
+SYSTEM "You are Inkling 2 Mini (MAPLE Sub-5GB Edition), a precise reasoning and systems engineering assistant."
+
+TEMPLATE """{{- if .System }}<|message_system|><|content_text|>{{ .System }}<|end_message|>{{ end }}<|message_system|><|content_text|>Thinking effort level: 0.7<|end_message|>{{- range .Messages }}{{- if eq .Role "user" }}<|message_user|><|content_text|>{{ .Content }}<|end_message|>{{- else if eq .Role "assistant" }}<|message_model|><|content_text|>{{ .Content }}<|end_message|><|content_model_end_sampling|>{{- end }}{{- end }}{{- if .Prompt }}<|message_user|><|content_text|>{{ .Prompt }}<|end_message|>{{- end }}"""
+
+PARAMETER stop "<|content_model_end_sampling|>"
+PARAMETER stop "<|message_user|>"
+PARAMETER num_ctx 8192
+PARAMETER num_gpu 99
+PARAMETER temperature 1.0
+PARAMETER top_p 1.0
+PARAMETER top_k 0
+PARAMETER min_p 0.0

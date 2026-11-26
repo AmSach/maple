@@ -1,0 +1,45 @@
+{
+  "ppl_20ch": {
+    "64exp_blended": {
+      "ppl": 23.7128,
+      "se": 0.93904
+    },
+    "56exp_blended": {
+      "ppl": 30.8071,
+      "se": 1.24634
+    },
+    "64exp_unsloth": {
+      "ppl": 13.0612,
+      "se": 0.49184
+    },
+    "56exp_unsloth": {
+      "ppl": 15.214,
+      "se": 0.57916
+    },
+    "64exp_work": {
+      "ppl": 37.3857,
+      "se": 1.54492
+    },
+    "56exp_work": {
+      "ppl": 49.7553,
+      "se": 2.11129
+    }
+  },
+  "bakeoff": {
+    "64exp_blended": {
+      "humaneval_20": 70.0,
+      "arc_v1_10": 0.0,
+      "combined": 70.0
+    },
+    "64exp_unsloth": {
+      "humaneval_20": 0.0,
+      "arc_v1_10": 0.0,
+      "combined": 0.0
+    },
+    "64exp_work": {
+      "humaneval_20": 80.0,
+      "arc_v1_10": 0.0,
+      "combined": 80.0
+    }
+  }
+}

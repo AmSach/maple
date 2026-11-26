@@ -30,6 +30,8 @@ library_name: gguf
 [![Direct Download DeepSeek](https://img.shields.io/badge/Direct%20Download-4.50%20GB%20DeepSeek-brightgreen.svg)](https://huggingface.co/AmSach/DeepSeek-Coder-V2-Lite-Instruct-MAPLE-Sub5GB-GGUF/resolve/main/DeepSeek-Coder-V2-Lite-MAPLE-Sub5GB.gguf?download=true)
 [![Hugging Face Gemma](https://img.shields.io/badge/Hugging%20Face-Gemma%204%20Sub--5GB-yellow.svg)](https://huggingface.co/AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF)
 [![Direct Download Gemma](https://img.shields.io/badge/Direct%20Download-4.75%20GB%20Gemma-brightgreen.svg)](https://huggingface.co/AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF/resolve/main/gemma-4-26B-A4B-MAPLE-IQ2_XXS.gguf?download=true)
+[![Hugging Face Inkling](https://img.shields.io/badge/Hugging%20Face-Inkling%202%20Mini%20Sub--5GB-yellow.svg)](https://huggingface.co/AmSach/Inkling-2-Mini-MAPLE-Sub5GB-GGUF)
+[![Direct Download Inkling](https://img.shields.io/badge/Direct%20Download-4.85%20GB%20Inkling-brightgreen.svg)](https://huggingface.co/AmSach/Inkling-2-Mini-MAPLE-Sub5GB-GGUF/resolve/main/Inkling-2-Mini-MAPLE-64exp-Work-IQ2_XXS.gguf?download=true)
 [![Format](https://img.shields.io/badge/Format-GGUF-green.svg)](https://github.com/ggerganov/llama.cpp)
 [![Hardware](https://img.shields.io/badge/Target%20Hardware-RTX%204050%206GB%20(100%25%20VRAM)-orange.svg)]()
 [![Hacker News](https://img.shields.io/badge/Hacker%20News-Show%20HN%20%2350463281-orange.svg)](https://news.ycombinator.com/item?id=50463281)
@@ -45,6 +47,7 @@ library_name: gguf
 > MAPLE compresses massive sparse MoE models into strictly sub-5GB containers, enabling **100% In-VRAM GPU Execution** on 6 GB consumer laptop GPUs with zero CPU or PCIe offloading:
 > - **DeepSeek-Coder-V2-Lite-Instruct (16B MoE)**: 15.7B base compressed from 8.57 GB (Q4) / 5.64 GB (IQ2) down to **4.50 GB GGUF** (54 of 64 routed experts + 2 shared invariant experts retained), achieving **65.6 - 76.3 Tokens/Second** generation throughput.
 > - **Gemma 4 26B-A4B-it (25.6B MoE)**: 25.6B base compressed from 9.92 GB down to **4.75 GB GGUF** (48 of 128 routed experts retained), achieving **45.4 Tokens/Second** generation throughput.
+> - **Inkling 2 Mini (26.4B Looped MoE)**: 26.4B base (24 physical layers with 3x loop over layers 6-17) compressed from 11.66 GB (IQ3) down to **4.85 GB GGUF** (64 of 128 routed experts retained), achieving **35.8 Tokens/Second** text generation, **546.4 Tokens/Second** prompt processing (44.2x speedup over unpruned IQ3), and **78.0% HumanEval@50**.
 
 **Author**: Aman Sachan ([Google Scholar](https://scholar.google.com/citations?user=dfgiWLYAAAAJ&hl=en) | [amansachan92905@gmail.com](mailto:amansachan92905@gmail.com))  
 **Organization**: Independent Systems Research  
@@ -731,6 +734,11 @@ maple/
 - **Hugging Face Model Repository**: [AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF](https://huggingface.co/AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF)
 - **Kaggle Model Registry & DOI**: [Aman Sachan (2026). MAPLE: Gemma 4 26B Sub-5GB MoE. Kaggle. DOI: 10.34740/KAGGLE/M/786779](https://doi.org/10.34740/KAGGLE/M/786779)
 - **Direct Binary (4.75 GB)**: [gemma-4-26B-A4B-MAPLE-IQ2_XXS.gguf](https://huggingface.co/AmSach/Gemma-4-26B-A4B-MAPLE-Sub5GB-GGUF/resolve/main/gemma-4-26B-A4B-MAPLE-IQ2_XXS.gguf?download=true)
+
+### Inkling 2 Mini MAPLE (Sub-5GB Looped MoE)
+- **Hugging Face Model Repository**: [AmSach/Inkling-2-Mini-MAPLE-Sub5GB-GGUF](https://huggingface.co/AmSach/Inkling-2-Mini-MAPLE-Sub5GB-GGUF)
+- **Direct Binary (4.85 GB Flagship)**: [Inkling-2-Mini-MAPLE-64exp-Work-IQ2_XXS.gguf](https://huggingface.co/AmSach/Inkling-2-Mini-MAPLE-Sub5GB-GGUF/resolve/main/Inkling-2-Mini-MAPLE-64exp-Work-IQ2_XXS.gguf?download=true)
+- **Direct Binary (4.39 GB 16k Companion)**: [Inkling-2-Mini-MAPLE-56exp-Blended-IQ2_XXS.gguf](https://huggingface.co/AmSach/Inkling-2-Mini-MAPLE-Sub5GB-GGUF/resolve/main/Inkling-2-Mini-MAPLE-56exp-Blended-IQ2_XXS.gguf?download=true)
 
 ---
 

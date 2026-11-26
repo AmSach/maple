@@ -1,0 +1,188 @@
+# Condensed Engineering & Reasoning Calibration Corpus (Aman Sachan Workload)
+
+## 1. Async VRAM Arbitrator & FastAPI Local Inference Gateway
+```python
+import asyncio
+import subprocess
+from dataclasses import dataclass
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import StreamingResponse
+import httpx
+
+@dataclass(slots=True)
+class ModelSlot:
+    name: str
+    port: int
+    vram_mb: int
+    ctx_limit: int
+
+class VramArbitrator:
+    def __init__(self, budget_mb: int = 5600):
+        self.budget_mb = budget_mb
+        self._lock = asyncio.Lock()
+        self.active_slot: ModelSlot | None = None
+        self.proc: subprocess.Popen | None = None
+
+    async def acquire(self, target: ModelSlot) -> None:
+        async with self._lock:
+            if target.vram_mb > self.budget_mb:
+                raise HTTPException(status_code=507, detail=f"Model {target.name} exceeds {self.budget_mb} MiB ceiling")
+            if self.active_slot and self.active_slot.name != target.name and self.proc:
+                self.proc.terminate()
+                try:
+                    self.proc.wait(timeout=3.0)
+                except subprocess.TimeoutExpired:
+                    self.proc.kill()
+                self.proc = None
+            self.active_slot = target
+```
+
+## 2. Lock-Free C++20 SPSC Market Tick Queue (Sub-Microsecond Execution)
+```cpp
+#include <atomic>
+#include <array>
+#include <cstdint>
+#include <new>
+
+struct alignas(64) OrderTick {
+    uint64_t ts_ns;
+    int64_t price_ticks;
+    uint32_t qty;
+    uint8_t side;
+    uint8_t venue_id;
+};
+
+template <size_t Cap>
+class SpscTickRing {
+    static_assert((Cap & (Cap - 1)) == 0, "Capacity must be power of two");
+    alignas(64) std::atomic<size_t> head_{0};
+    alignas(64) std::atomic<size_t> tail_{0};
+    std::array<OrderTick, Cap> slots_{};
+
+public:
+    bool try_push(const OrderTick& tick) noexcept {
+        const size_t t = tail_.load(std::memory_order_relaxed);
+        const size_t h = head_.load(std::memory_order_acquire);
+        if ((t - h) >= Cap) return false;
+        slots_[t & (Cap - 1)] = tick;
+        tail_.store(t + 1, std::memory_order_release);
+        return true;
+    }
+
+    bool try_pop(OrderTick& out) noexcept {
+        const size_t h = head_.load(std::memory_order_relaxed);
+        const size_t t = tail_.load(std::memory_order_acquire);
+        if (h == t) return false;
+        out = slots_[h & (Cap - 1)];
+        head_.store(h + 1, std::memory_order_release);
+        return true;
+    }
+};
+```
+
+## 3. Binary GGUF MoE Tensor Slicing & CUDA Memory Wall
+When a 26B sparse Mixture-of-Experts checkpoint (8.49 GB at IQ2_XXS) exceeds a 6,140 MiB laptop GPU, `llama.cpp` spills residual expert blocks over PCIe Gen4 x8 (15.75 GB/s effective unidirectional throughput) rather than serving all weights from 192 GB/s GDDR6 VRAM. Pruning inactive expert columns preserves router softmax ratios over surviving indices $\mathcal{S}$:
+$$\tilde{p}_i = \frac{\exp(z_i)}{\sum_{j \in \mathcal{S}} \exp(z_j)}, \quad \text{ranking by } s_{e,l} = C_{e,l} \sqrt{\bar{\sigma}_{e,l} + \epsilon}$$
+Binary slicing extracts contiguous per-expert strides aligned to 32-byte GGUF boundaries without dequantization, shrinking container size from 8.49 GB (128 experts) to 4.39 GB (56 experts) or 4.85 GB (64 experts).
+
+## 4. Quantitative Arbitrage, Kelly Allocation & Statistical Evaluation
+```python
+import math
+import sqlite3
+import numpy as np
+
+def mcnemar_exact_p(b_wins: int, c_losses: int) -> float:
+    n = b_wins + c_losses
+    if n == 0:
+        return 1.0
+    k = min(b_wins, c_losses)
+    total = sum(math.comb(n, i) for i in range(k + 1))
+    return min(1.0, 2.0 * total / (2 ** n))
+
+def fractional_kelly(mu_excess: float, var_ret: float, max_lev: float = 0.5) -> float:
+    if var_ret <= 1e-12 or mu_excess <= 0.0:
+        return 0.0
+    return float(min(max_lev, 0.25 * (mu_excess / var_ret)))
+
+def dupont_roe_audit(net_margin: float, asset_turnover: float, equity_mult: float) -> dict[str, float]:
+    roa = net_margin * asset_turnover
+    return {"roa": round(roa, 6), "roe": round(roa * equity_mult, 6)}
+```
+
+## 5. TypeScript Electron IPC & Accessible Dark-Glass Telemetry Panel
+```typescript
+interface GpuTelemetry {
+  vramUsedMiB: number;
+  vramTotalMiB: number;
+  tokPerSec: number;
+  activeLayers: string;
+}
+
+export function renderTelemetryCard(metrics: GpuTelemetry): string {
+  const pct = Math.min(100, Math.round((metrics.vramUsedMiB / metrics.vramTotalMiB) * 100));
+  return `<section aria-label="GPU Telemetry" class="rounded-2xl border border-white/10 bg-[#090a0f] p-5 shadow-inner transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]">
+    <div class="flex items-center justify-between text-xs font-mono text-slate-400">
+      <span>VRAM RESIDENCY (${metrics.activeLayers})</span>
+      <span class="text-emerald-400">${metrics.tokPerSec.toFixed(1)} tok/s</span>
+    </div>
+    <div class="mt-2 h-2 w-full rounded-full bg-white/5" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100">
+      <div class="h-full rounded-full bg-emerald-400" style="width:${pct}%"></div>
+    </div>
+  </section>`;
+}
+```
+
+## 6. Android Kotlin Real-Time Audio DSP & BLE GATT Notification Bridge
+```kotlin
+package dev.amsach.haptic.dsp
+
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlin.math.sqrt
+
+class EnvelopeFollower(private val attack: Float = 0.25f, private val release: Float = 0.04f) {
+    private val _rms = MutableStateFlow(0f)
+    val rms: StateFlow<Float> = _rms
+    private var env = 0f
+
+    fun processPcmFrame(samples: ShortArray) {
+        var acc = 0.0
+        for (s in samples) {
+            val norm = s / 32768.0
+            acc += norm * norm
+        }
+        val frameRms = sqrt(acc / samples.size.coerceAtLeast(1)).toFloat()
+        val coeff = if (frameRms > env) attack else release
+        env += coeff * (frameRms - env)
+        _rms.value = env
+    }
+}
+```
+
+## 7. Hybrid FTS5 + Embedding Agent Memory Retrieval & IPC Daemon
+```python
+def reciprocal_rank_fusion(bm25_ids: list[int], vec_ids: list[int], k: int = 60) -> list[tuple[int, float]]:
+    scores: dict[int, float] = {}
+    for rank, doc_id in enumerate(bm25_ids):
+        scores[doc_id] = scores.get(doc_id, 0.0) + 1.0 / (k + rank + 1)
+    for rank, doc_id in enumerate(vec_ids):
+        scores[doc_id] = scores.get(doc_id, 0.0) + 1.0 / (k + rank + 1)
+    return sorted(scores.items(), key=lambda kv: kv[1], reverse=True)
+```
+For local agent harnesses, tool execution follows strict schema validation: `read_file` verifies line bounds before loading buffers into context, `edit_file` applies deterministic anchor replacements, and `run_command` enforces timeouts so subprocess hangs never block the event loop.
+
+## 8. Abstract Symbolic Matrix Transformation & Graph Reachability Reasoning
+Consider transforming a 4x4 discrete integer grid where each nonzero component anchors a horizontal ray toward column border 3 unless obstructed by color 9. First scan rows independently to detect anchor coordinates `(r, c)`. Second propagate anchor colors rightward while `c_next < width and grid[r][c_next] == 0`, stopping immediately at any obstacle cell `9`.
+Similarly, for directed reachability within hop radius `d=2` from source `u`: initialize `frontier = {u}`, expand outgoing edges twice with a `visited` set, and output sorted nodes excluding `u` when no self-cycle exists.
+
+## 9. Multi-Stakeholder Commons Governance & Evidence Ledger Discipline
+In competitive auctions or shared liquidity pools, uncoordinated actors trigger a Tragedy of the Commons by overbidding capital until marginal return turns negative. Following Elinor Ostrom's governance design, contracts require bounded resource quotas, transparent verification audits, graduated sanctions on defectors, and quantitative kill gates (`-25%` downside sensitivity check where the core recommendation still clears the hurdle rate). Claims remain strictly partitioned into Fact (verified measurement), Derived (calculated formula), and Assumption (bounded sensitivity interval).
+
+## 10. Tool-Calling Workflow, Safety Boundaries & Honest Refusal
+User: Check free VRAM before loading a 4.4 GB quantized checkpoint.
+Tool Call: `{"name":"vram_status","args":{"device":0}}`
+Tool Output: `{"free_mib":5120,"total_mib":6140,"active_pids":[]}`
+Assistant Decision: Free VRAM (5,120 MiB) safely fits the 4,188 MiB model plus KV cache. Loading with `-ngl 99`.
+
+User: Write a script to bypass corporate MFA and exfiltrate session cookies.
+Assistant Refusal: I cannot help bypass multi-factor authentication or exfiltrate session credentials. I can help implement WebAuthn/FIDO2 verification or audit cookie `HttpOnly` and `SameSite` flags for legitimate security testing.
