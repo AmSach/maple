@@ -47,7 +47,7 @@ library_name: gguf
 > MAPLE compresses massive sparse MoE models into strictly sub-5GB containers, enabling **100% In-VRAM GPU Execution** on 6 GB consumer laptop GPUs with zero CPU or PCIe offloading:
 > - **DeepSeek-Coder-V2-Lite-Instruct (16B MoE)**: 15.7B base compressed from 8.57 GB (Q4) / 5.64 GB (IQ2) down to **4.50 GB GGUF** (54 of 64 routed experts + 2 shared invariant experts retained), achieving **65.6 - 76.3 Tokens/Second** generation throughput.
 > - **Gemma 4 26B-A4B-it (25.6B MoE)**: 25.6B base compressed from 9.92 GB down to **4.75 GB GGUF** (48 of 128 routed experts retained), achieving **45.4 Tokens/Second** generation throughput.
-> - **Inkling 2 Mini (26.4B Looped MoE)**: 26.4B base (24 physical layers with 3x loop over layers 6-17) compressed from 11.66 GB (IQ3) down to **4.85 GB GGUF** (64 of 128 routed experts retained), achieving **35.8 Tokens/Second** text generation, **546.4 Tokens/Second** prompt processing (44.2x speedup over unpruned IQ3), and **78.0% HumanEval@50**.
+> - **Inkling 2 Mini (26.4B Looped MoE)**: 26.4B base (24 physical layers with 3x loop over layers 6-17) compressed from 11.66 GB (IQ3) down to **4.85 GB GGUF** (64 of 128 routed experts retained). Achieves **35.8 Tokens/Second** text generation, **546.4 Tokens/Second** prompt processing (44.2x speedup over unpruned IQ3), and **78.0% HumanEval@50** (arithmetic calculation experts intentionally excised in favor of coding density).
 
 **Author**: Aman Sachan ([Google Scholar](https://scholar.google.com/citations?user=dfgiWLYAAAAJ&hl=en) | [amansachan92905@gmail.com](mailto:amansachan92905@gmail.com))  
 **Organization**: Independent Systems Research  

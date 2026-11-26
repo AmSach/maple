@@ -65,10 +65,10 @@ Below is the side-by-side empirical scorecard comparing the unpruned full checkp
 | **MAPLE 64exp-Work IQ2_XXS (Flagship)** | **18.8B (64 exp / 50.0%)** | **4.85 GB** | **49 / 49 layers (100% In-VRAM)** | **35.83 ± 1.17 t/s** | **546.41 ± 1.94 t/s** | **78.0% (Pass@1)** | **22.0% (Pass@1)** | **30.006 ± 0.876** |
 | **MAPLE 56exp-Blended IQ2_XXS (16k Companion)** | **17.4B (56 exp / 43.8%)** | **4.39 GB** | **49 / 49 layers (100% In-VRAM)** | **36.08 ± 0.13 t/s** | **550.04 ± 1.34 t/s** | **72.0% (Pass@1)** | **18.0% (Pass@1)** | **31.420 ± 0.910** |
 
-#### Key Takeaways:
+#### Key Takeaways & Explicit Trade-offs:
 1. **Retention of Algorithmic Code Capability:** MAPLE 64exp retains **78.0% HumanEval@50**, preserving over 85% of the unpruned teacher model's coding accuracy and essentially matching unpruned IQ2 (~76-80%), while eliminating 6.81 GB of unroutable parameters.
 2. **Speedup Over Unpruned Quantizations:** On a 6GB laptop GPU, unpruned `UD-IQ3_XXS` and `UD-IQ2_XXS` cannot fit into VRAM. Because the GPU must constantly page weights across the narrow PCIe Gen4 x4 bus, generation crawls at 3.38 t/s and 12.13 t/s. MAPLE's 100% In-VRAM offload yields a **10.6x speedup** over unpruned IQ3 and a **2.95x speedup** over unpruned IQ2.
-3. **The GSM8K Trade-off Under Reduced Expert Breadth:** While coding syntax and Python logic remain remarkably intact (78.0%), complex grade-school math word problems that rely on multi-step arithmetic chains drop from the unpruned baseline down to 22.0% under low reasoning budgets, reflecting the tight parameter budget of sub-5GB edge models.
+3. **Explicit Pruning of Arithmetic Calculation Experts:** To fit Inkling 2 Mini into a strictly Sub-5GB footprint (4.85 GB) running 100% In-VRAM, 64 of 128 routed experts per layer were pruned. The calibration manifold was targeted specifically at software engineering and systems coding. Consequently, **numerical arithmetic and multi-step calculation experts were intentionally excised** in favor of preserving core code synthesis and logical reasoning. Users should be aware that while Python/C++ code generation remains high (78.0% HumanEval), raw arithmetic problem solving drops to 22.0% on GSM8K due to the pruned calculation experts.
 4. **Spatial Reasoning (ARC-AGI):** On visual-spatial grid transformations (ARC-AGI v1 and v2), all sub-5GB quantized looped variants score 0.0%, demonstrating that dense visual grid reasoning requires uncompressed higher-precision expert representations.
 
 ### 3. VRAM Consumption Profile on 6GB GPU
